@@ -1,3 +1,6 @@
-//
-// Created by Ева Банкеева on 09.09.2025.
-//
+#include <stdio.h>
+
+int main() {
+    printf("Hello World\n");
+    return 0;
+}
