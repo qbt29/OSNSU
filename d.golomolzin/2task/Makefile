@@ -1,2 +1,4 @@
 all:
-	gcc main.c -o main; ./main
+	gcc -std=c99 main.c -o main
+	./main
+
