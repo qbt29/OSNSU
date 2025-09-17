@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 typedef struct EL {
@@ -37,13 +38,15 @@ int main () {
 
         // если получилось так, что ind выходит за массив, то перевыделяем память
         if (count_rows <= ind) {
+            // увеличиваем в 2 раза
             count_rows *= 2;
+
+            // перелоцируем память
             EL** curr_rows = (EL**)malloc(sizeof(EL*) * count_rows);
             if (curr_rows == NULL) { perror("Failed to allocate memory"); return 1; }
-
-            for (int i = 0; i < ind; i++) {
-                curr_rows[i] = rows[i];
-            }
+            
+            // перенесем соответсвующие элементы И отчистим массив меньшей длины
+            for (int i = 0; i < ind; i++) { curr_rows[i] = rows[i]; }
             free(rows);
             rows = curr_rows;
         }
@@ -64,36 +67,37 @@ int main () {
     }
     fclose(file);
 
-
     int fd = open("file.txt", O_RDONLY);
     if (fd == -1) { perror("ERROR"); return 1; }
 
     memset(str, 0, MAX_LEN_STR);
     
-
     while (1) {
         // считываем индекс по которому хотим получить строку
-        scanf("%ld", &ind); ind--;
+        int index;
+        scanf("%d", &index); 
+        index--;
 
         // есил получили 0, значит прерываем работу
-        if (ind == -1  || ind >= count_rows - 1) {
+        if (index == -1  || index >= ind) {
             break; 
         }
+        // иначе можем обработать
         else {
-            lseek(fd, rows[ind]->start, 0); // сдвигаем дескриптор
+            lseek(fd, rows[index]->start, 0); // сдвигаем дескриптор
 
             // считываем определенное кол-во байт
-            read(fd, str, rows[ind]->lenght-1);
-            str[rows[ind]->lenght] = '\0';
-            printf("%s\n", str);
+            ssize_t bytes = read(fd, str, rows[index]->lenght-1);
+            if (bytes > 0) {
+                str[rows[index]->lenght] = '\0';
+                printf("%s\n", str);
+            }
             memset(str, 0, MAX_LEN_STR);
-
         }
     }
 
-    for (int i = 0; i < count_rows; i++) {
-        free(rows[i]);
-    }
+    // чистка
+    for (int i = 0; i < ind; i++) { free(rows[i]); }
     free(rows);
 
     return 0;

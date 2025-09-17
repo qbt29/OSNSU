@@ -21,9 +21,9 @@ void display_all(int s) {
 
     int ind = 1;
     char str[1024];
-    printf("\nTime's up!!!\n");
+    printf("\n------- Time's up!!! -------\n");
     while (fgets(str, 1024, file) != NULL) { printf("[%d] : %s", ind++, str); }
-    printf("\n");
+    printf("\n\n");
     exit(0);
 }
 
@@ -91,7 +91,8 @@ int main () {
     while (1) {
         // считываем индекс по которому хотим получить строку
         int index;
-        scanf("%d", &index); index--;
+        scanf("%d", &index); 
+        index--;
 
         alarm(5);
 
@@ -108,7 +109,6 @@ int main () {
             str[rows[index]->lenght] = '\0';
             printf("%s\n", str);
             memset(str, 0, MAX_LEN_STR);
-
         }
 
     }

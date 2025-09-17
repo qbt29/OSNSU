@@ -59,11 +59,14 @@ int main () {
         memset(in_str, 0, MAX_LEN_STR * sizeof(char));
     }
 
+    printf("\n");
     // последовательно выводим строки И сразу очищаем память
     for (int i = 0; i < ind; i++) {
         printf("%s\n", strs[i]);
         free(strs[i]);
     }
+    printf("\n");
+
     // очищаем память
     free(strs);
     free(in_str);

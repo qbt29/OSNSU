@@ -18,7 +18,7 @@ int main() {
     setenv("TZ", "PST8PDT", 1);
     tzset();
 
-    printf("\nСейчас в Калифорнии ровно...\n%s", ctime(&now));
+    printf("\nTime in California...\n%s", ctime(&now));
 
     sp = localtime(&now);
     printf("%d/%d/%02d %d:%02d %s\n\n",
