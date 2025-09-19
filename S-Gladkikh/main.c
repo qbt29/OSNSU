@@ -36,17 +36,16 @@ int main(int argc, char *argv[]){
         {"Csize",required_argument,0,'C'},
         {"Vname",required_argument,0,'V'}
     };
-    char opt = getopt_long(argc,argv,"ispucdv",longOpts,NULL);
-    while(opt!=-1){
+    char opt;
+    while((opt=getopt_long(argc,argv,"ispucdv",longOpts,NULL))!=-1){
         switch(opt){
             case 'i':
-                struct GUID guid;
-                guid = getGUID();
-                printf("UID:%d\nEUID:%d\nGID:%d\nEGID:%d\n",guid.uid,guid.euid,guid.gid,guid.egid);
+                struct GUID GUID;
+                GUID = getGUID();
+                printf("UID:%d\nEUID:%d\nGID:%d\nEGID:%d\n",GUID.uid,GUID.euid,GUID.gid,GUID.egid);
                 break;
             default:break;
         }
-        opt = getopt_long(argc,argv,"ispucdv",longOpts,NULL);
     }
     
 }
