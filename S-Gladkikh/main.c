@@ -36,8 +36,8 @@ int main(int argc, char *argv[]){
         {"Csize",required_argument,0,'C'},
         {"Vname",required_argument,0,'V'}
     };
-    char opt;
-    while((opt=getopt_long(argc,argv,"ispucdv",longOpts,NULL))!=-1){
+    char opt = getopt_long(argc,argv,"ispucdv",longOpts,NULL);
+    while(opt!=-1){
         switch(opt){
             case 'i':
                 struct GUID guid;
@@ -46,6 +46,7 @@ int main(int argc, char *argv[]){
                 break;
             default:break;
         }
+        opt = getopt_long(argc,argv,"ispucdv",longOpts,NULL);
     }
     
 }
