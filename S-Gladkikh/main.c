@@ -40,9 +40,9 @@ int main(int argc, char *argv[]){
     while((opt=getopt_long(argc,argv,"ispucdv",longOpts,NULL))!=-1){
         switch(opt){
             case 'i':
-                struct GUID GUID;
-                GUID = getGUID();
-                printf("UID:%d\nEUID:%d\nGID:%d\nEGID:%d\n",GUID.uid,GUID.euid,GUID.gid,GUID.egid);
+                struct GUID guid;
+                guid = getGUID();
+                printf("UID:%d\nEUID:%d\nGID:%d\nEGID:%d\n",guid.uid,guid.euid,guid.gid,guid.egid);
                 break;
             default:break;
         }
