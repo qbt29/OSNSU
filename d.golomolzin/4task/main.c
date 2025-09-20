@@ -3,15 +3,20 @@
 #include <stdlib.h>
 
 
+// cтруктура узла списка
+typedef struct Node {
+    char* data;
+    struct Node* next;
+} Node;
+
 int main () {
 
     // максимально возможное кол-во символов в переданной строке
     const size_t MAX_LEN_STR = 1024;
     
-    int ind = 0;
-    size_t len_strs = 1;
-    char** strs = (char**)malloc(sizeof(char*) * len_strs);
-    if (strs == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
+    // инициализируем голову и хвост списка
+    Node* head = NULL;
+    Node* tail = NULL;
 
     // инициализируем строку максимально возможной длины
     char* in_str = (char*)malloc(sizeof(char) * MAX_LEN_STR);
@@ -39,36 +44,42 @@ int main () {
         if (str == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
         strcpy(str, in_str);
 
-        // если получилось так, что ind выходит за массив, то перевыделяем память
-        if (len_strs <= ind) {
-            len_strs *= 2;
-            char** curr_strs = (char**)malloc(sizeof(char*) * len_strs);
-            if (curr_strs == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
-
-            for (int i = 0; i < ind; i++) {
-                curr_strs[i] = strs[i];
-            }
-            free(strs);
-            strs = curr_strs;
+        // создаем новый узел списка
+        Node* new_node = (Node*)malloc(sizeof(Node));
+        if (new_node == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
+        
+        new_node->data = str;
+        new_node->next = NULL;
+        
+        // добавляем узел в конец списка
+        if (head == NULL) {
+            head = new_node;
+            tail = new_node;
+        } else {
+            tail->next = new_node;
+            tail = new_node;
         }
-
-        // записываем указатель на строку в общий массив строк И увеличиваем указатель
-        strs[ind++] = str;
 
         // очищаем для последующего использования
         memset(in_str, 0, MAX_LEN_STR * sizeof(char));
     }
 
     printf("\n");
-    // последовательно выводим строки И сразу очищаем память
-    for (int i = 0; i < ind; i++) {
-        printf("%s\n", strs[i]);
-        free(strs[i]);
+    // последовательно выводим строки из списка И сразу очищаем память
+    Node* current = head;
+    while (current != NULL) {
+
+        printf("%s\n", current->data);
+        Node* to_free = current;
+        current = current->next;
+        
+        // очищаем память
+        free(to_free->data);
+        free(to_free);
     }
     printf("\n");
 
-    // очищаем память
-    free(strs);
+
     free(in_str);
 
     return 0;
