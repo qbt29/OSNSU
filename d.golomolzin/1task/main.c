@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200112L
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/resource.h>
@@ -214,7 +217,7 @@ int main(int argc, char *argv[]) {
     extern char* optarg;
 
     if (argc == 1) {
-        printf("Empty arguments");
+        printf("Empty arguments\n");
         return 1;
     }
 
