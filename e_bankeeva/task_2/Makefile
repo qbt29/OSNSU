@@ -1,2 +1,2 @@
 all:
-	gсс main.c -o main
+	gcc main.c -o main
