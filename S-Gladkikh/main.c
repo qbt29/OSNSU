@@ -24,6 +24,8 @@ int main(int argc, char *argv[]){
                 
                 printf("UID:%d\nEUID:%d\nGID:%d\nEGID:%d\n",getuid(),geteuid(),getgid(),getegid());
                 break;
+            case 's':
+                setpgrp();
             default:break;
         }
     }
