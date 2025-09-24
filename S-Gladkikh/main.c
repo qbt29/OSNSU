@@ -3,7 +3,6 @@
 #include "stdlib.h"
 #include "string.h"
 #include "unistd.h"
-#include "errno.h"
 struct GUID{
     int uid;
     int euid;
@@ -27,9 +26,10 @@ int main(int argc, char *argv[]){
                 break;
             case 's':
                 setpgrp();
-                printf("%d\n",errno);
+                break;
             default:break;
         }
     }
+    printf("%d %d",getpid(),getpgid(0));
     
 }
