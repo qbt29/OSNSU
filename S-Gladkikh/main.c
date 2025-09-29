@@ -3,6 +3,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "unistd.h"
+#include "sys/resource.h"
 struct GUID{
     int uid;
     int euid;
@@ -19,6 +20,8 @@ int main(int argc, char *argv[]){
     };
     char opt;
     while((opt=getopt_long(argc,argv,"ispucdv",longOpts,NULL))!=-1){
+        struct rlimit limit;
+        char path[255];
         switch(opt){
             case 'i':
                 
@@ -27,9 +30,29 @@ int main(int argc, char *argv[]){
             case 's':
                 setpgrp();
                 break;
+            case 'p':
+                printf("PID:%d\nPPID:%d\nPGID:%d\n",getpid(),getppid(),getpgid(0));
+                break;
+            case 'u':
+                //getrlimit(RLIMIT_NOFILE,&limit);
+                break;
+            case 'c':
+                getrlimit(RLIMIT_CORE,&limit);
+                printf("CORE_FILE soft limit: %lu bytes\nCORE_FILE hard limit: %lu bytes\n",limit.rlim_cur,limit.rlim_max);
+                break;
+            case 'd':
+                getcwd(path,255);
+                printf("%s\n",path);
+                break;
+            case 'v':
+                char **envPtr=__environ;
+                while(envPtr!=NULL){
+                    printf("%s\n",*envPtr);
+                    envPtr++;
+                }
+                break;
             default:break;
         }
     }
-    printf("%d %d",getpid(),getpgid(0));
     
 }
