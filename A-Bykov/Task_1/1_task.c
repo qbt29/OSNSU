@@ -43,7 +43,7 @@ int print_ulimit(){
 
     // Получить текущие лимиты
     if (getrlimit(RLIMIT_FSIZE, &limit) == 0) {
-        printf("Current ulimit: %ld\n", limit.rlim_cur);
+        printf("Current ulimit: %lu\n", limit.rlim_cur);
     }
     else {
         perror("getrlimit");
@@ -81,7 +81,7 @@ int print_core_size(){
 
     // Получить текущие лимиты
     if (getrlimit(RLIMIT_CORE, &limit) == 0) {
-        printf("Current core size: %ld\n", limit.rlim_cur);
+        printf("Current core size: %lu\n", limit.rlim_cur);
     }
     else {
         perror("Core_size");

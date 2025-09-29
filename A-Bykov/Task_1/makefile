@@ -1,2 +1,3 @@
 default: 1_task.c
-	gcc -o main 1_task.c -I
+	gcc -o main 1_task.c
+
