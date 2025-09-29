@@ -22,6 +22,7 @@ int main(int argc, char *argv[]){
     while((opt=getopt_long(argc,argv,"ispucdv",longOpts,NULL))!=-1){
         struct rlimit limit;
         char path[255];
+        char **envPtr;
         switch(opt){
             case 'i':
                 
@@ -45,7 +46,7 @@ int main(int argc, char *argv[]){
                 printf("%s\n",path);
                 break;
             case 'v':
-                char **envPtr=__environ;
+                envPtr=environ;
                 while(envPtr!=NULL){
                     printf("%s\n",*envPtr);
                     envPtr++;
