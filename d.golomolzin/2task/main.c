@@ -4,18 +4,25 @@
 #include <stdlib.h>
 
 
+// массив строк с названием временных зон
 extern char *tzname[];
 
 int main() {
 
+
     time_t now;
     struct tm *sp;
 
-    // возврат текущего времени
+    // возврат текущего времени с 1января 1970 года
     (void)time(&now);
 
-    // "Pacific Standard Time" + "8" (20 - 12) + "Pacific Daylight Time" (летнее время)
     setenv("TZ", "PST8PDT", 1);
+
+    // PST - Pacific Standard Time (зимнее время)
+    // 8 - смещение от UTC в часах для зимнего времени
+    // PDT - Pacific Daylight Time (летнее время)
+    // 1 - флаг перезаписи (если переменная уже существует, она будет заменена)
+
     tzset();
 
     printf("\nTime in California...\n%s", ctime(&now));

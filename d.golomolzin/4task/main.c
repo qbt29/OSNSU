@@ -9,6 +9,7 @@ typedef struct Node {
     struct Node* next;
 } Node;
 
+
 int main () {
 
     // максимально возможное кол-во символов в переданной строке
@@ -78,7 +79,6 @@ int main () {
         free(to_free);
     }
     printf("\n");
-
 
     free(in_str);
 

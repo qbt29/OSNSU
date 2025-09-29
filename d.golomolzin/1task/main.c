@@ -1,5 +1,5 @@
-#define _GNU_SOURCE
-#define _POSIX_C_SOURCE 200112L
+#define _GNU_SOURCE // GNU-специфичные расширения. Для использования strdup(), getline()
+#define _POSIX_C_SOURCE 200112L // Определяет версию POSIX стандарта = POSIX.1-2001. для getrlimit(), setrlimit()
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -16,16 +16,16 @@
 // Печатает реальные и эффективные идентификаторы пользователя и группы
 void i_flag() {
 
-    printf("REAL UID: %d\n", getuid());
-    printf("EFEC UID: %d\n", geteuid());
-    printf("REAL GID: %d\n", getgid());
-    printf("EFEC GID: %d\n", getegid());
+    printf("REAL UID: %d\n", getuid());     // id -ru
+    printf("EFEC UID: %d\n", geteuid());    // id -u
+    printf("REAL GID: %d\n", getgid());     // id -rg
+    printf("EFEC GID: %d\n", getegid());    // id -g
 }
 
 // Процесс становится лидером группы. Подсказка: смотри setpgid(2).
 void s_flag() {
 
-    // if (setpgrp() == -1)
+    // ps -o pid,pgid,comm $$ -u $USER
     if (setpgid(0,0) == -1) {
         perror("Failed with setpgid");
         return;
@@ -38,6 +38,7 @@ void s_flag() {
 // Печатает идентификаторы процесса, процесса-родителя и группы процессов
 void p_flag() {
 
+    // ps -o pid,ppid,pgid,comm $$ -u $USER
     printf("PID: %d\n", getpid());
     printf("PPID: %d\n", getppid());
     printf("PGID: %d\n", getpgrp());
@@ -54,7 +55,7 @@ void u_flag() {
     }
     else {
         // размер в байтах
-        printf("SOFT FSIZE: %lu\n", rlim.rlim_cur); // ulimil -S -f
+        printf("SOFT FSIZE: %lu\n", rlim.rlim_cur); // ulimit -S -f
         printf("HARD FSIZE: %lu\n", rlim.rlim_max); // ulimit -H -f
     }   
 }
@@ -89,8 +90,8 @@ void U_flag(const char* str) {
             return;
         }
         else {
-            printf("New SOFT FSIZE: %lu\n", rlim.rlim_cur);
-            printf("HARD FSIZE: %lu\n", rlim.rlim_max);
+            printf("New SOFT FSIZE: %lu\n", rlim.rlim_cur); // ulimit -S -f
+            printf("HARD FSIZE: %lu\n", rlim.rlim_max);     // ulimit -H -f
         }
     }
 }
@@ -149,7 +150,7 @@ void d_flag() {
 
     char pwd[1024];
     // получаем текущую директорию
-    if (getcwd(pwd, sizeof(pwd)) == NULL) {
+    if (getcwd(pwd, sizeof(pwd)) == NULL) { // pwd
         perror("Failed with getcwd");
         return;
     }
