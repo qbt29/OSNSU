@@ -5,12 +5,6 @@
 #include "unistd.h"
 #include "sys/resource.h"
 #include "stdlib.h"
-struct GUID{
-    int uid;
-    int euid;
-    int gid;
-    int egid;
-};
 
 
 int main(int argc, char *argv[]){
@@ -34,8 +28,8 @@ int main(int argc, char *argv[]){
             case 'U':
                 getrlimit(RLIMIT_FSIZE,&limit);
                 limit.rlim_cur=atol(optarg);
-                if(limit.rlim_cur>limit.rlim_max){
-                    fprintf(stderr,"Error: ulimit value exceeds hard limit");
+                if(limit.rlim_cur>limit.rlim_max||limit.rlim_cur<0){
+                    fprintf(stderr,"Error: invalid ulimit value");
                 }
                 else{
                     setrlimit(RLIMIT_FSIZE,&limit);
@@ -78,7 +72,7 @@ int main(int argc, char *argv[]){
                 fprintf(stderr,"Unrecognised option: %s\n",argv[optind-1]);
                 break;
             case ':':
-                fprintf(stderr,"Missing argument for option \'%s\'\n",argv[optind-1]);
+                fprintf(stderr,"Missing argument for option %s\n",argv[optind-1]);
             default:break;
         }
     }
