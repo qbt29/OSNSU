@@ -1,2 +1,2 @@
 default: main.c
-	gcc -o main main.c -I
+	gcc -o main main.c

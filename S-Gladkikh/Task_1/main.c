@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
                 }
                 else{
                     setrlimit(RLIMIT_FSIZE,&limit);
-                    printf("Set ulimit to %lu",limit.rlim_cur);
+                    printf("Set ulimit to %lu\n",limit.rlim_cur);
                 }
                 break;
             case 'u':
