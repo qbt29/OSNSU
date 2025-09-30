@@ -9,7 +9,10 @@ int main()
     time_t now;
     struct tm *sp;
 
-    putenv("TZ=America/Los_Angeles");
+    // Устанавливаем часовой пояс Калифорнии (PST)
+    setenv("TZ", "PST8", 1);
+    tzset();
+
     (void) time (&now);
 
     printf("%s", ctime(&now));
