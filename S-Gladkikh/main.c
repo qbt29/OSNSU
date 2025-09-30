@@ -4,6 +4,7 @@
 #include "string.h"
 #include "unistd.h"
 #include "sys/resource.h"
+#include "stdlib.h"
 struct GUID{
     int uid;
     int euid;
@@ -13,14 +14,8 @@ struct GUID{
 
 
 int main(int argc, char *argv[]){
-    struct option longOpts []={
-        {"Unew_ulimit",required_argument,0,'U'},
-        {"Csize",required_argument,0,'C'},
-        {"Vname",required_argument,0,'V'},
-        {0,0,0,0}
-    };
     char opt;
-    while((opt=getopt_long(argc,argv,"ispucdv",longOpts,NULL))!=-1){
+    while((opt=getopt(argc,argv,"ispucdvV:C:U:"))!=-1){
         struct rlimit limit;
         char path[255];
         extern char** environ;
@@ -64,6 +59,14 @@ int main(int argc, char *argv[]){
                     printf("%s\n",*envPtr);
                     envPtr++;
                 }
+                break;
+            case 'V':
+                char *ptr = optarg;
+                for(;*ptr != '=';ptr++){
+                }
+                *ptr='\0';
+                ptr++;
+                setenv(optarg,ptr,1);
                 break;
             default:break;
         }
