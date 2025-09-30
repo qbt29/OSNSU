@@ -33,10 +33,10 @@ int main(int argc, char *argv[]) {
             
             // Процесс становится лидером группы
             case 's': {
-                if (setpgid(0, 0)) 
-                    printf("the group leader process has been set successfully\n");
+                if (setpgid(0, 0) == 0) 
+                    printf("the group leader process set successfully\n");
                 else 
-                    perror("failed to set the group leader process\n");
+                    perror("failed to set group leader process\n");
                 
                 break;
             }
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
             // Печатает значение ulimit
             case 'u': {
                 struct rlimit rlp;
-                if (getrlimit(RLIMIT_FSIZE, &rlp)) 
+                if (getrlimit(RLIMIT_FSIZE, &rlp) == 0) 
                     printf("ulimit value: %llu\n", rlp.rlim_max);
                 else 
                     perror("failed to get ulimit\n");
@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
                 }
 
                 rlp.rlim_cur = new_ulimit;
-                if (setrlimit(RLIMIT_FSIZE, &rlp))
-                    printf("the ulimit value has been set successfully\n");
+                if (setrlimit(RLIMIT_FSIZE, &rlp) == 0)
+                    printf("the ulimit value set successfully\n");
                 else 
                     perror("failed to set the ulimit value\n");
                 
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
             // Печатает размер в байтах core-файла, который может быть создан.
             case 'c': {
                 struct rlimit rlp;
-                if (getrlimit(RLIMIT_CORE, &rlp)) 
+                if (getrlimit(RLIMIT_CORE, &rlp) == 0) 
                     printf("core-file cap limit: %llu\n", rlp.rlim_max);
                 else 
                     perror("failed to get the core-file cap limit\n");
@@ -110,8 +110,8 @@ int main(int argc, char *argv[]) {
                 }
 
                 rlp.rlim_cur = new_rlim;
-                if (setrlimit(RLIMIT_CORE, &rlp)) 
-                    printf("the core-file cap limit has been set successfully\n");
+                if (setrlimit(RLIMIT_CORE, &rlp) == 0) 
+                    printf("the core-file cap limit set successfully\n");
                 else 
                     perror("failed to set the core-file cap limit\n");
                     
