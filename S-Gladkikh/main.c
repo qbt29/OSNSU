@@ -20,6 +20,7 @@ int main(int argc, char *argv[]){
         char path[255];
         extern char** environ;
         char **envPtr;
+        char *ptr;
         switch(opt){
             case 'i':
                 printf("UID:%d\nEUID:%d\nGID:%d\nEGID:%d\n",getuid(),geteuid(),getgid(),getegid());
@@ -61,7 +62,7 @@ int main(int argc, char *argv[]){
                 }
                 break;
             case 'V':
-                char *ptr = optarg;
+                ptr = optarg;
                 for(;*ptr != '=';ptr++){
                 }
                 *ptr='\0';
