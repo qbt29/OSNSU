@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
         char path[255];
         extern char** environ;
         char **envPtr;
-        char *ptr;
+        char *val;
         switch(opt){
             case 'i':
                 printf("UID:%d\nEUID:%d\nGID:%d\nEGID:%d\n",getuid(),geteuid(),getgid(),getegid());
@@ -61,12 +61,12 @@ int main(int argc, char *argv[]){
                 }
                 break;
             case 'V':
-                ptr = optarg;
-                for(;*ptr != '=';ptr++){
+                val = optarg;
+                for(;*val != '=';val++){
                 }
-                *ptr='\0';
-                ptr++;
-                setenv(optarg,ptr,1);
+                *val='\0';
+                val++;
+                setenv(optarg,val,1);
                 break;
             case '?':
                 fprintf(stderr,"Unrecognised option: %s\n",argv[optind-1]);
