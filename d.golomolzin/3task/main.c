@@ -1,43 +1,16 @@
-// #include <stdio.h>
-// #include <errno.h>
-// #include <unistd.h>
-
-
-// void print_r_and_ef()
-// {
-//     printf("Real: %d\n", getuid());
-//     printf("Effective: %d\n", geteuid());
-// }
-
-// int main()
-// {
-//     print_r_and_ef();
-
-//     FILE* st = fopen("file.txt", "r");
-//     if (st == NULL) { perror("Ошибка открытия файла"); }
-//     fclose(st);
-
-//     seteuid(geteuid());
-//     print_r_and_ef();
-
-//     FILE* fn = fopen("file.txt", "r");
-//     if (fn == NULL) { perror("Ошибка открытия файла"); }
-//     fclose(fn);
-
-//     return 0;
-// }
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
 
-void print_r_and_ef()
-{
+
+void print_r_and_ef() {
+    
     printf("Real UID: %d\n", getuid());
     printf("Effective UID: %d\n", geteuid());
 }
 
-int main()
-{
+int main() {
+
     printf("=== До изменения ===\n");
     print_r_and_ef();
 
@@ -45,7 +18,8 @@ int main()
     FILE* st = fopen("file.txt", "r");
     if (st == NULL) { 
         perror("Ошибка открытия файла (до)"); 
-    } else {
+    }
+    else {
         printf("Файл успешно открыт (до)\n");
         fclose(st);
     }
@@ -62,7 +36,8 @@ int main()
     FILE* fn = fopen("file.txt", "r");
     if (fn == NULL) { 
         perror("Ошибка открытия файла (после)"); 
-    } else {
+    }
+    else {
         printf("Файл успешно открыт (после)\n");
         fclose(fn);
     }
