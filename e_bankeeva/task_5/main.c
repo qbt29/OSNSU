@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 int main(int argc, const char * argv[])
 {

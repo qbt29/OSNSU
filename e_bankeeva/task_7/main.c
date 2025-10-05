@@ -9,11 +9,13 @@
 
 volatile int timeout = 0;
 
+
 void alarm_handler()
 {
     printf("Time's up\n");
     timeout = 1;
 }
+
 
 int main(int argc, const char * argv[])
 {
@@ -24,15 +26,32 @@ int main(int argc, const char * argv[])
         return -1;
     }
 
-    signal(SIGALRM, alarm_handler);
+    struct stat st;
+    if (fstat(file, &st) == -1)
+    {
+        printf("Error stating file\n");
+        return -1;
+    }
+
+    const off_t filesize = st.st_size;
+
+    const char *data = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, file, 0);
+    if (data == MAP_FAILED)
+    {
+        printf("Error mapping file\n");
+        return -1;
+    }
 
     off_t start[1024], pos = 0;
-    int lens[1024];
-    char val;
-    int len = 0, str_count = 0;
+    int lens[1024], n, len = 0, str_count = 0;
+    char rez[1024];
 
-    while (read(file, &val, 1) == 1)
+    signal(SIGALRM, alarm_handler);
+
+    while (pos < filesize)
     {
+        char val = data[pos];
+
         if (len == 0)
             start[str_count] = pos;
 
@@ -46,9 +65,6 @@ int main(int argc, const char * argv[])
             str_count += 1;
         }
     }
-
-    int n;
-    char rez[1024];
 
     while (timeout == 0)
     {
@@ -64,10 +80,10 @@ int main(int argc, const char * argv[])
             return -1;
         }
 
-        const off_t st = start[n - 1];
+        const off_t sta = start[n - 1];
         const int l = lens[n - 1];
 
-        lseek(file, st, SEEK_SET);
+        lseek(file, sta, SEEK_SET);
         read(file, rez, l);
         rez[l] = '\0';
         printf("%s", rez);
