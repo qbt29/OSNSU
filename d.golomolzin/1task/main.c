@@ -172,46 +172,36 @@ void v_flag() {
 // Вносит новую переменную в среду или изменяет значение существующей переменной.
 void V_flag(const char* str) {
 
+    // cоздаем копию для разбора
     char* copy_str = strdup(str);
     if (copy_str == NULL) {
-        perror("Failed wuth strdup in V_flag");
+        perror("Failed with strdup in V_flag");
         return;
     }
     
     // разделяем на name and value по '='
-    char* name  = strtok(copy_str, "=");
-    char* value = strtok(NULL, "=");
+    char* name = strtok(copy_str, "=");
+    char* value = strtok(NULL, "");
+    
     if (name == NULL || value == NULL) {
-        perror("Invalid name/value env");
+        fprintf(stderr, "Invalid format. Use: name=value\n");
+        free(copy_str);
         return;
     }
     
-    // если имени не существует в окружении, то добавляем
-    if (getenv(name) == NULL) {
-        
-        if (putenv(copy_str) == -1) {
-            perror("Failed");
-            return;
-        }
-        else {
-            printf("Successful add of a new env (%s)\n",str);
-        }
-        
+    // удалим лишние пробелы в значении. Если есть
+    while (*value == ' ') {
+        value++;
     }
-    // иначе имя было, то мы изменяем сущ значение
+    
+    if (setenv(name, value, 1) == -1) {
+        perror("Failed to set environment variable");
+    }
     else {
-        // перезаписываем значение
-        if (setenv(name, value, 1) == -1) {
-            perror("Failed append new env");
-            return;
-        }
-        else {
-            printf("Successful rename: %s=%s\n", name, value);
-        }
+        printf("Successfully set environment variable: %s=%s\n", name, value);
     }
     free(copy_str);
 }
-
 
 int main(int argc, char *argv[]) {
 
