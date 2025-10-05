@@ -1,112 +1,154 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <fcntl.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include <string.h>
 
 
-// для взаимодействия с функцией для вывода ошибки используем глобальные переменные
-char** global_strs = NULL;
-int global_len_strs = 0;
+char* file_inmap = NULL;
+size_t size_file_inmap = 0;
 
+typedef struct EL {
+    size_t start;   // байт указывающий на начало строки => на след \n
+    size_t length;  // длина строки = кол-во символов (без \n)
+} EL;
+
+EL** rows = NULL;
+size_t ind = 1;
+
+
+// функция которая выводит все записи из файла. Срабатывает по истечении 5 секунд
 void display_all(int s) {
 
-    printf("\n------- Time's up!!! -------\n");
-    for (int i = 0; i < global_len_strs; i++) {
-        printf("[%d] %s\n", i, global_strs[i]);
+    printf("\nБыл получен сигнал под номером %d (SIGALRM) \n", s);
+    printf("\n===== Время вышло!!! =====\n");
+    for (size_t i = 0; i != ind; i++) {
+        printf("[%d] : %.*s\n", (int)i+1, (int)rows[i]->length-1, file_inmap + rows[i]->start);
     }
-    printf("\n\n");
-    return;
-};
+    printf("\n");
+    exit(0);
+}
+
 
 int main () {
 
     // максимально возможное кол-во символов в переданной строке
     const size_t MAX_LEN_STR = 1024;
-    
-    int ind = 0;
-    size_t len_strs = 1;
-    // массив строк
-    char** strs = (char**)malloc(sizeof(char*) * len_strs);
-    if (strs == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
+    size_t pointer = 0;
 
-    // инициализируем строку максимально возможной длины
-    char* in_str = (char*)malloc(sizeof(char) * MAX_LEN_STR);
-    if (in_str == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
-
-    // считываем с этого файла
+    // открываем и считываем для создания таблицы отступов
     FILE* file = fopen("file.txt", "r");
-    while (1) {
+    if (file == NULL) { perror("Failed to open file"); return 1; }
 
-        // пока можем считывать, считываем
-        if (fgets(in_str, MAX_LEN_STR, file) == NULL) { break; }
+    size_t count_rows = 1;
+    // для индексации по таблице
+    ind = 0;
 
-        // длина строки
-        size_t len_in_str = strlen(in_str);
+    
+    rows = (EL**)malloc(sizeof(EL*) * count_rows);
+    if (rows == NULL) { perror("Failed to allocate memory"); return 1; }
 
-        // заменяем последний символ
-        if (in_str[len_in_str-1] == '\n') {
-            in_str[len_in_str-1] = '\0';
-            len_in_str--;
-        }
-
-        // перезаписываем в новую строку
-        char* str = (char*)malloc(sizeof(char) * (len_in_str + 1));
-        if (str == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
-        strcpy(str, in_str);
+    // считываем и записываем кол-во строк в файле
+    char str[MAX_LEN_STR];
+    while (fgets(str, MAX_LEN_STR, file) != NULL) {
 
         // если получилось так, что ind выходит за массив, то перевыделяем память
-        if (len_strs <= ind) {
-            len_strs *= 2;
-            char** curr_strs = (char**)malloc(sizeof(char*) * len_strs);
-            if (curr_strs == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
+        if (count_rows <= ind) {
+            count_rows *= 2;
+            EL** curr_rows = (EL**)malloc(sizeof(EL*) * count_rows);
+            if (curr_rows == NULL) { perror("Failed to allocate memory"); return 1; }
 
             for (int i = 0; i < ind; i++) {
-                curr_strs[i] = strs[i];
+                curr_rows[i] = rows[i];
             }
-            free(strs);
-            strs = curr_strs;
+            free(rows);
+            rows = curr_rows;
         }
 
-        // записываем указатель на строку в общий массив строк И увеличиваем указатель
-        strs[ind++] = str;
+        // выделяем память для структуры одной строки
+        EL* one_row = (EL*)malloc(sizeof(EL));
+        if (one_row == NULL) { perror("Failed to allocate memory"); return 1; }
 
-        // очищаем для последующего использования
-        memset(in_str, 0, MAX_LEN_STR * sizeof(char));
+        one_row->start = pointer; // указывает на след \n
+        one_row->length = strlen(str); // запишем кол-во символов
+
+        // запишем указатель на структуру в массив
+        rows[ind++] = one_row;
+
+        // увеличиваем так как добавилось слово
+        pointer += one_row->length;
+
+    }
+    fclose(file);
+
+
+    int fd = open("file.txt", O_RDONLY);
+    if (fd == -1) { perror("ERROR"); return 1; }
+
+    struct stat st;
+    if (fstat(fd, &st) == -1) {
+        perror("ERROR IN DETERMINING THE SIZE");
+        return 1;
+    }
+    size_file_inmap = st.st_size;
+
+    // отражает size_file_inmap байтов, начиная со смещения offset файла (или другого объекта), определенного файловым описателем fd, в память, начиная с адреса start.
+    file_inmap = mmap(NULL, size_file_inmap, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    // PROT_NONE - доступ к этой области памяти запрещен
+    // PROT_EXEC - данные в страницах можно исполнять
+    // PROT_READ - данные можно читать
+    // PROT_WRITE - в область можно записывать информацию
+
+    if (file_inmap == MAP_FAILED) {
+        perror("ERROR SCANNING IN MMAP");
+        return 1;
     }
 
-    global_strs = strs;
-    global_len_strs = ind;
-
+    // асинхронная работа. Если получили SIG... то вызываем функцию display_all
     signal(SIGALRM, display_all);
 
-    int index;
+    // SIGINT    // Ctrl+C (прерывание)
+    // SIGTERM   // Запрос на завершение  
+    // SIGSEGV   // Segmentation fault
+    // SIGUSR1   // Пользовательский сигнал 1
+
+    printf("\nВведите индекс строки, которую вы хотите получить.\n");
+    printf("5 секунд бездествия завершают программу и выводит содержимое\n");
+    printf("Ввод 0 индекса / индекса превышающего макс.кол-во строк завершит программу\n");
     while (1) {
-        scanf("%d", &index);
+        // считываем индекс по которому хотим получить строку
+        int index;
+        scanf("%d", &index); 
+        index--;
         
+        // отсчитывает переданное кол-во секунд и вызывает SIGALRM
+        // возвращает оставшееся время предыдущего таймера
         alarm(5);
+        // alarm(0) - сбрасывает счетчик
 
-        if (index == 0) { break; }
-        --index;
-        
-        if (index == -1 || index >= ind) { break; }
-        else {
-            printf("%s\n", strs[index]);
+        // есил получили 0 или слишком большой индекс в таблице, значит прерываем работу
+        if (index == -1  || index >= ind) {
+            break; 
         }
-        
+        else {
+
+            printf("[%d] : %.*s\n", (int)index + 1, (int)rows[index]->length-1, file_inmap + rows[index]->start);
+        }
 
     }
 
-    // очищаем память
-    for (int i = 0; i < ind; i++) {
-        free(strs[i]);
+    if (file_inmap != NULL && file_inmap != MAP_FAILED) {
+        munmap(file_inmap, size_file_inmap);
     }
-    
-    free(strs);
-    free(in_str);
+
+    for (int i = 0; i < ind; i++) { free(rows[i]); }
+    free(rows);
+    close(fd);
 
     return 0;
 }

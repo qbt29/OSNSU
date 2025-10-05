@@ -3,43 +3,44 @@
 #include <unistd.h>
 
 
-void print_r_and_ef() {
+void print_real_efec_id() {
     
-    printf("Real UID: %d\n", getuid());
-    printf("Effective UID: %d\n", geteuid());
+    printf("   REAL   UID: %d\n", getuid());
+    printf("EFFECTIVE UID: %d\n", geteuid());
 }
 
 int main() {
 
-    printf("=== До изменения ===\n");
-    print_r_and_ef();
+    printf("===== До изменения =====\n");
+    print_real_efec_id();
 
-    // Первая попытка открыть файл
-    FILE* st = fopen("file.txt", "r");
-    if (st == NULL) { 
+    // первая попытка открыть файл
+    FILE* input = fopen("file.txt", "r");
+    if (input == NULL) { 
         perror("Ошибка открытия файла (до)"); 
     }
     else {
         printf("Файл успешно открыт (до)\n");
-        fclose(st);
+        fclose(input);
     }
 
     // ИЗМЕНЕНИЕ: устанавливаем эффективный UID в реальный UID
     if (seteuid(getuid()) == -1) {
         perror("Ошибка seteuid");
+        return 0;
     }
 
-    printf("\n=== После изменения ===\n");
-    print_r_and_ef();
+    printf("\n===== После изменения =====\n");
+    print_real_efec_id();
 
-    // Вторая попытка открыть файл
-    FILE* fn = fopen("file.txt", "r");
-    if (fn == NULL) { 
+    // вторая попытка открыть файл
+    FILE* output = fopen("file.txt", "r");
+    if (output == NULL) { 
         perror("Ошибка открытия файла (после)"); 
     }
     else {
         printf("Файл успешно открыт (после)\n");
-        fclose(fn);
+        fclose(output);
     }
 
     return 0;

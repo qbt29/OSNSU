@@ -23,6 +23,9 @@ int main () {
     char* in_str = (char*)malloc(sizeof(char) * MAX_LEN_STR);
     if (in_str == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
 
+    printf("\nВведите строки для записи в список.\n");
+    printf("Строка с начальным символом <.> завершает ввод и выводит все содержимое:\n");
+
     while (1) {
 
         // пока можем считывать, считываем
@@ -65,7 +68,7 @@ int main () {
         memset(in_str, 0, MAX_LEN_STR * sizeof(char));
     }
 
-    printf("\n");
+    printf("\nСодержимое списка:\n");
     // последовательно выводим строки из списка И сразу очищаем память
     Node* current = head;
     while (current != NULL) {

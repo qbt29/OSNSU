@@ -8,6 +8,7 @@
 #include <signal.h>
 
 
+
 typedef struct EL {
     size_t start;   // байт указывающий на начало строки => на след \n
     size_t lenght;  // длина строки = кол-во символов (без \n)
@@ -21,7 +22,8 @@ void display_all(int s) {
 
     int ind = 1;
     char str[1024];
-    printf("\n------- Time's up!!! -------\n");
+    printf("\nБыл получен сигнал под номером %d (SIGALRM) \n", s);
+    printf("\n===== Время вышло!!! =====\n");
     while (fgets(str, 1024, file) != NULL) { printf("[%d] : %s", ind++, str); }
     printf("\n\n");
     exit(0);
@@ -33,7 +35,6 @@ int main () {
     // максимально возможное кол-во символов в переданной строке
     const size_t MAX_LEN_STR = 1024;
     size_t pointer = 0;
-
 
     // открываем и считываем для создания таблицы отступов
     FILE* file = fopen("file.txt", "r");
@@ -87,14 +88,27 @@ int main () {
 
     memset(str, 0, MAX_LEN_STR);
 
+    // асинхронная работа. Если получили SIG... то вызываем функцию display_all
     signal(SIGALRM, display_all);
+
+    // SIGINT    // Ctrl+C (прерывание)
+    // SIGTERM   // Запрос на завершение  
+    // SIGSEGV   // Segmentation fault
+    // SIGUSR1   // Пользовательский сигнал 1
+
+    printf("\nВведите индекс строки, которую вы хотите получить.\n");
+    printf("5 секунд бездествия завершают программу и выводит содержимое\n");
+    printf("Ввод 0 индекса / индекса превышающего макс.кол-во строк завершит программу\n");
     while (1) {
         // считываем индекс по которому хотим получить строку
         int index;
         scanf("%d", &index); 
         index--;
-
+        
+        // отсчитывает переданное кол-во секунд и вызывает SIGALRM
+        // возвращает оставшееся время предыдущего таймера
         alarm(5);
+        // alarm(0) - сбрасывает счетчик
 
         // есил получили 0 или слишком большой индекс в таблице, значит прерываем работу
         if (index == -1  || index >= ind) {
@@ -107,7 +121,7 @@ int main () {
             // считываем определенное кол-во байт
             read(fd, str, rows[index]->lenght-1);
             str[rows[index]->lenght] = '\0';
-            printf("%s\n", str);
+            printf("[%d] : %s\n", index + 1, str);
             memset(str, 0, MAX_LEN_STR);
         }
 
