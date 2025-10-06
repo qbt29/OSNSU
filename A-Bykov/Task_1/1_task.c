@@ -178,7 +178,7 @@ int main(int argc, char *argv[]){
 
     // Проверка на случай, если аргумент содержит несколько флагов после одного '-'
     for (int i = 1; i < argc; i++) {
-        if (argv[i][0] == '-' && strlen(argv[i]) > 2) {
+        if (argv[i][0] == '-' && strlen(argv[i]) > 2 && argv[i][1] != 'U' && argv[i][1] != 'C' && argv[i][1] != 'V') {
             fprintf(stderr, "Разделяйте опции пробелом: %s\n", argv[i]);
             print_usage();
             return 1;
