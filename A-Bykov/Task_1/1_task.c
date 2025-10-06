@@ -1,16 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/resource.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
 
 extern char *optarg;
 extern char **environ;
+extern int optind, opterr, optopt;
 
 void print_user_ids(){
     printf("Real UID: %d\n", getuid());
@@ -20,7 +16,6 @@ void print_user_ids(){
 }
 
 int group_leader(){
-    // 0 if complete, -1 if failed
     if (setpgid(0, 0) == -1) {
         perror("group leader set failed");
         return -1;
@@ -28,7 +23,6 @@ int group_leader(){
     else {
         printf("Process became group leader\n");
     }
-
     return 0;
 }
 
@@ -41,9 +35,9 @@ void print_process_id(){
 int print_ulimit(){
     struct rlimit limit;
 
-    // Получить текущие лимиты
     if (getrlimit(RLIMIT_FSIZE, &limit) == 0) {
-        printf("Current ulimit: %lu\n", limit.rlim_cur);
+        printf("Current ulimit: %ld\n", limit.rlim_cur);
+        printf("Max ulimit: %ld\n", limit.rlim_max);
     }
     else {
         perror("getrlimit");
@@ -56,10 +50,10 @@ int print_ulimit(){
 int change_ulimit(const char *value){
     struct rlimit limit;
 
-    int new_limit = atoi(value);
+    long new_limit = atol(value);
 
     if (new_limit <= 0){
-        perror("Incorrect value");
+        fprintf(stderr, "Invalid ulimit value: %s\n", value);
         return -1;
     }
 
@@ -67,11 +61,11 @@ int change_ulimit(const char *value){
     limit.rlim_max = new_limit;
 
     if (setrlimit(RLIMIT_FSIZE, &limit) == -1) {
-        perror("getrlimit");
+        perror("setrlimit");
         return -1;
     }
 
-    printf("New limit set\n");
+    printf("New limit set to %ld\n", new_limit);
 
     return 0;
 }
@@ -79,9 +73,9 @@ int change_ulimit(const char *value){
 int print_core_size(){
     struct rlimit limit;
 
-    // Получить текущие лимиты
     if (getrlimit(RLIMIT_CORE, &limit) == 0) {
         printf("Current core size: %lu\n", limit.rlim_cur);
+        printf("Max core size: %lu\n", limit.rlim_max);
     }
     else {
         perror("Core_size");
@@ -94,10 +88,10 @@ int print_core_size(){
 int change_core_size(const char *value){
     struct rlimit limit;
 
-    int new_limit = atoi(value);
+    long new_limit = atol(value);
 
-    if (new_limit <= 0){
-        perror("Incorrect value");
+    if (new_limit < 0){
+        fprintf(stderr, "Invalid core size: %s\n", value);
         return -1;
     }
 
@@ -105,18 +99,17 @@ int change_core_size(const char *value){
     limit.rlim_max = new_limit;
 
     if (setrlimit(RLIMIT_CORE, &limit) == -1) {
-        perror("getrlimit");
+        perror("setrlimit");
         return -1;
     }
 
-    printf("New core size set\n");
+    printf("New core size set to %ld\n", new_limit);
 
     return 0;
-
 }
 
 int print_directory(){
-    char currentDirectory[1024]; // Буфер для хранения пути
+    char currentDirectory[1024];
 
     if (getcwd(currentDirectory, sizeof(currentDirectory)) != NULL) {
         printf("Current directory: %s\n", currentDirectory);
@@ -138,7 +131,8 @@ void print_environment(){
 int set_environment(const char *assignment){
     char *equals = strchr(assignment, '=');
     if (equals == NULL || equals == assignment){
-        perror("set_env assigment");
+        fprintf(stderr, "Invalid environment format: %s\n", assignment);
+        fprintf(stderr, "Use: -V name=value\n");
         return -1;
     }
 
@@ -158,10 +152,38 @@ int set_environment(const char *assignment){
     return 0; 
 }
 
+void print_usage(){
+    printf("Usage:\n");
+    printf("  -i : Print real/effective UID and GID\n");
+    printf("  -s : Become process group leader\n");
+    printf("  -p : Print process IDs\n");
+    printf("  -u : Show current ulimit\n");
+    printf("  -U value : Change ulimit\n");
+    printf("  -c : Show core size\n");
+    printf("  -C value : Change core size\n");
+    printf("  -d : Show current directory\n");
+    printf("  -v : Print environment\n");
+    printf("  -V name=value : Set environment variable\n");
+}
+
 int main(int argc, char *argv[]){
-    char options[ ] = "ispucdvU:C:V:";  /* valid options */
+    char options[] = "ispucdvU:C:V:";
     int c;
-    int invalid = 0;
+
+    if (argc == 1) {
+        printf("No options specified.\n");
+        print_usage();
+        return 0;
+    }
+
+    // Проверка на случай, если аргумент содержит несколько флагов после одного '-'
+    for (int i = 1; i < argc; i++) {
+        if (argv[i][0] == '-' && strlen(argv[i]) > 2) {
+            fprintf(stderr, "Разделяйте опции пробелом: %s\n", argv[i]);
+            print_usage();
+            return 1;
+        }
+    }
     
     char **reversed_argv = malloc((argc + 1) * sizeof(char *));
     if (!reversed_argv) {
@@ -169,10 +191,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
     
-    // Копируем название программы
     reversed_argv[0] = argv[0];
-    
-    // остальные элементы помещаем в обратном порядке
     for (int i = 1; i < argc; i++) {
         reversed_argv[i] = argv[argc - i];
     }
@@ -198,6 +217,7 @@ int main(int argc, char *argv[]){
                 break;
             case 'U':
                 if (change_ulimit(optarg) == -1){
+                    fprintf(stderr, "Failed to set ulimit.\n");
                     return 1;
                 }
                 break;
@@ -208,6 +228,7 @@ int main(int argc, char *argv[]){
                 break;
             case 'C':
                 if (change_core_size(optarg) == -1){
+                    fprintf(stderr, "Failed to set core size.\n");
                     return 1;
                 }
                 break;
@@ -221,15 +242,17 @@ int main(int argc, char *argv[]){
                 break;
             case 'V':
                 if (set_environment(optarg) == -1){
+                    fprintf(stderr, "Failed to set environment variable.\n");
                     return 1;
                 }
                 break;
             case '?':
-                printf("invalid option\n");
-                invalid++;
-                break;
+                fprintf(stderr, "Invalid option: -%c\n", optopt);
+                print_usage();
+                return 1;
         }
     }
     
     return 0;
 }
+
