@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include <time.h>
-extern char *tzname[];
-
+#include "stdlib.h"
 int main()
 {
+    setenv("TZ","America/Tijuana",1);
+    tzset();
     time_t now;
-    struct tm *sp;
-    (void) time( &now );
-    sp = gmtime(&now);
-    sp->tm_hour-=8;
-    now = mktime(sp);
-    printf("%s",ctime(&now));
+    time(&now);
+    struct tm *local=localtime(&now);
+    printf("%s",asctime(local));
     return 0;
  }
