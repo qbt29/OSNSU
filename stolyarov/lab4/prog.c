@@ -2,6 +2,32 @@
 #include <string.h>
 #include <stdlib.h>
 
+void remove_function_key_sequences(char *str) {
+    char *src = str;
+    char *dst = str;
+    
+    while (*src) {
+        if (*src == 27 || (*src == '^' && *(src + 1) == '[')) {
+            if (*src == 27) {
+                src++;
+            } else {
+                src += 2;
+            }
+            
+            while (*src && 
+                   ((*src >= 'A' && *src <= 'Z') ||
+                    (*src >= '0' && *src <= '9') ||
+                    *src == '[' || *src == '~' ||  *src == ';' ||
+                    *src == 'O' ||  *src == 'P' || *src == 'Q' || 
+                    *src == 'R' ||  *src == 'S')) {
+                src++;
+            }
+        } else {
+            *dst++ = *src++;
+        }
+    }
+    *dst = '\0';
+}
 
 // cтруктура узла списка
 typedef struct Node 
@@ -35,6 +61,7 @@ int main ()
         // пока можем считывать, считываем
         if (fgets(in_str, MAX_LEN_STR, stdin) == NULL) { break; }
 
+        remove_function_key_sequences(in_str);
         // длина строки
         size_t len_in_str = strlen(in_str);
 
