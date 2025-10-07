@@ -8,7 +8,7 @@ int main(){
     time_t now;
     struct tm *sp;
     // летом pdt зимой pst
-    setenv("TZ", "PST8PDT", 1);
+    setenv("TZ", "PST8", 1);
     tzset();
     time(&now);
 
