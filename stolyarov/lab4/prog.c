@@ -1,123 +1,90 @@
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-void remove_function_key_sequences(char *str) {
-    char *src = str;
-    char *dst = str;
-    
-    while (*src) {
-        if (*src == 27 || (*src == '^' && *(src + 1) == '[')) {
-            if (*src == 27) {
-                src++;
-            } else {
-                src += 2;
-            }
-            
-            while (*src && 
-                   ((*src >= 'A' && *src <= 'Z') ||
-                    (*src >= '0' && *src <= '9') ||
-                    *src == '[' || *src == '~' ||  *src == ';' ||
-                    *src == 'O' ||  *src == 'P' || *src == 'Q' || 
-                    *src == 'R' ||  *src == 'S')) {
-                src++;
-            }
-        } else {
-            *dst++ = *src++;
-        }
-    }
-    *dst = '\0';
-}
 
-// cтруктура узла списка
-typedef struct Node 
-{
-    char* data;
-    struct Node* next;
+#define BUFFER_SIZE 256
+
+
+typedef struct Node_s {
+    char *string;
+    struct Node_s *next;
 } Node;
 
+Node *head, *tail;
 
-int main () 
-{
 
-    // максимально возможное кол-во символов в переданной строке
-    const size_t MAX_LEN_STR = 1024;
-    
-    // инициализируем голову и хвост списка
-    Node* head = NULL;
-    Node* tail = NULL;
+void push(char *string) {
+    unsigned long len = strlen(string) + 1;
+    char *copyPtr = calloc(len, sizeof(char));
+    strcpy(copyPtr, string);
 
-    // инициализируем строку максимально возможной длины
-    char* in_str = (char*)malloc(sizeof(char) * MAX_LEN_STR);
-    if (in_str == NULL) 
-    { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
+    tail->string = copyPtr;
+    tail->next = calloc(1, sizeof(Node));
 
-    printf("\nВведите строки для записи в список.\n");
-    printf("Строка с начальным символом <.> завершает ввод и выводит все содержимое:\n");
+    tail = tail->next;
+}
 
-    while (1) 
-    {
+void printList() {
+    for(Node *ptr = head; ptr != NULL; ptr = ptr->next)
+        if (ptr->string) 
+            printf("%s\n", ptr->string);
+}
 
-        // пока можем считывать, считываем
-        if (fgets(in_str, MAX_LEN_STR, stdin) == NULL) { break; }
+int main() {
+    char inputBuf[BUFFER_SIZE] = {0};
 
-        remove_function_key_sequences(in_str);
-        // длина строки
-        size_t len_in_str = strlen(in_str);
+    // инициализация
+    head = malloc(sizeof(Node));
 
-        // заменяем последний символ
-        if (in_str[len_in_str-1] == '\n') 
-        {
-            in_str[len_in_str-1] = '\0';
-            len_in_str--;
+    head->string = NULL;
+    head->next = NULL;
+
+    tail = head;
+
+    while (fgets(inputBuf, BUFFER_SIZE, stdin) != NULL) {
+        // конец чтения
+        if (inputBuf[0] == '.') {
+            printList();
+            return 0;
         }
-        
-        // если начинается с точки => прерываем
-        if (len_in_str > 0 && in_str[0] == '.') { break; }
 
-        // перезаписываем в новую строку
-        char* str = (char*)malloc(sizeof(char) * (len_in_str + 1));
-        if (str == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
-        strcpy(str, in_str);
+        // находим позицию \n
+        char *lineEnd = strchr(inputBuf, '\n');
 
-        // создаем новый узел списка
-        Node* new_node = (Node*)malloc(sizeof(Node));
-        if (new_node == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
-        
-        new_node->data = str;
-        new_node->next = NULL;
-        
-        // добавляем узел в конец списка
-        if (head == NULL) 
-        {
-            head = new_node;
-            tail = new_node;
+        // нет \n => длинная строка
+        if (lineEnd == NULL) {
+            size_t newBufCnt = 0;
+            size_t newBufCap = BUFFER_SIZE;
+            char *newBuf = malloc(BUFFER_SIZE);
+
+            memcpy(newBuf, inputBuf, BUFFER_SIZE);
+            newBufCnt += BUFFER_SIZE - 1;
+
+            // продолжаем читать строку
+            while (fgets(inputBuf, BUFFER_SIZE, stdin) != NULL) {
+                // увеличиваем общий размер строки
+                newBufCap += BUFFER_SIZE;
+                newBuf = realloc(newBuf, newBufCap);
+
+                memcpy(newBuf + newBufCnt, inputBuf, BUFFER_SIZE);
+                newBufCnt += BUFFER_SIZE - 1;
+
+                // если находим \n конец строки
+                lineEnd = strchr(newBuf, '\n');
+                if (lineEnd) {
+                    *lineEnd = '\0';
+                    push(newBuf);
+                    free(newBuf);
+                    break;
+                }
+            }
         } else {
-            tail->next = new_node;
-            tail = new_node;
+            *lineEnd = '\0';
+            push(inputBuf);
         }
-
-        // очищаем для последующего использования
-        memset(in_str, 0, MAX_LEN_STR * sizeof(char));
     }
-
-    printf("\nСодержимое списка:\n");
-    // последовательно выводим строки из списка И сразу очищаем память
-    Node* current = head;
-    while (current != NULL) 
-    {
-
-        printf("%s\n", current->data);
-        Node* to_free = current;
-        current = current->next;
-        
-        // очищаем память
-        free(to_free->data);
-        free(to_free);
-    }
-    printf("\n");
-
-    free(in_str);
 
     return 0;
 }
+
