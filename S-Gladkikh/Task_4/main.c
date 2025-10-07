@@ -6,7 +6,7 @@ typedef struct linkedlist{
     struct linkedlist *next;
 }LinkedList;
 void addNode(LinkedList* ptr,char *string){
-    while(ptr->next!=NULL){
+    while(ptr->string!=NULL){
         ptr=ptr->next;
     }
     ptr->string=malloc(strlen(string)+1);
