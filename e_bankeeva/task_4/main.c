@@ -44,6 +44,8 @@ int main()
         }
     }
 
+    printf("\n");
+
     for (Node *node = head; node != NULL; node = node->next)
     {
         printf("%s\n", node->str);
