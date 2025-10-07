@@ -1,7 +1,5 @@
-#include <sys/types.h>
 #include <stdio.h>
 #include <time.h>
-#include <stdlib.h>
 extern char *tzname[];
 
 int main()
@@ -13,5 +11,5 @@ int main()
     sp->tm_hour-=8;
     now = mktime(sp);
     printf("%s",ctime(&now));
-    exit(0);
+    return 0;
  }
