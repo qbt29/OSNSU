@@ -13,18 +13,16 @@ void alarm_handler()
 {
     printf("Time's up\n");
     timeout = 1;
+    fclose(stdin);
 }
 
 int main(int argc, const char * argv[])
 {
+    signal(SIGALRM, alarm_handler);
+
     const int file = open(argv[1], O_RDONLY);
     if (file == -1)
-    {
-        printf("Error opening file\n");
         return -1;
-    }
-
-    signal(SIGALRM, alarm_handler);
 
     off_t start[1024], pos = 0;
     int lens[1024];
@@ -47,30 +45,65 @@ int main(int argc, const char * argv[])
         }
     }
 
-    int n;
-    char rez[1024];
-
-    while (timeout == 0)
+    if (len > 0 && str_count < 1024)
     {
-        alarm(5);
-        scanf("%d", &n);
-        alarm(0);
-        if (timeout == 1)
-            break;
+        lens[str_count] = len;
+        str_count += 1;
+    }
 
-        if (n > str_count)
+    printf("Line Offset length\n");
+    for (int i = 0; i < str_count; i++)
+        printf("%d\t%lld\t%d\n", i + 1, (long long)start[i], lens[i] - 1);
+
+
+    int n, f = 0;
+    char rez[1025];
+
+    while (1)
+    {
+        if (f == 0)
+            alarm(5);
+        if (scanf("%d", &n) == 1 && n > 0 && n < str_count + 1)
         {
-            printf("No such line\n");
-            return -1;
+            if (f == 0)
+            {
+                alarm(0);
+                f = 1;
+                if (timeout == 1)
+                {
+                    break;
+                }
+            }
+
+            if (n > str_count || n < 0)
+                return -1;
+
+            const off_t st = start[n - 1];
+            const int l = lens[n - 1];
+
+            lseek(file, st, SEEK_SET);
+            read(file, rez, l);
+            rez[l] = '\0';
+            printf("%s", rez);
         }
+        else
+        {
+            if (timeout == 1 || n == 0)
+                break;
 
-        const off_t st = start[n - 1];
-        const int l = lens[n - 1];
+            printf("Введите число - номер существующей строки\n");
+            while (getchar() != '\n');
+        }
+    }
 
-        lseek(file, st, SEEK_SET);
-        read(file, rez, l);
-        rez[l] = '\0';
-        printf("%s", rez);
+    if (timeout == 1)
+    {
+        for (int i = 0; i < str_count; i++) {
+            lseek(file, start[i], SEEK_SET);
+            read(file, rez, lens[i]);
+            rez[lens[i]] = '\0';
+            printf("%s", rez);
+        }
     }
 
     close(file);

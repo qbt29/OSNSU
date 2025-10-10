@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+
 int main(int argc, const char * argv[])
 {
     const int file = open(argv[1], O_RDONLY);
@@ -32,26 +33,37 @@ int main(int argc, const char * argv[])
         }
     }
 
+    printf("Line Offset length\n");
+    for (int i = 0; i < str_count; i++)
+        printf("%d\t%lld\t%d\n", i + 1, (long long)start[i], lens[i] - 1);
+
+
     int n;
     char rez[1024];
-    scanf("%d", &n);
 
-    if (n > str_count)
-        return -1;
-
-    while (n != 0)
+    while (1)
     {
-        const off_t st = start[n - 1];
-        const int l = lens[n - 1];
+        if (scanf("%d", &n) == 1 && n > 0 && n < str_count + 1)
+        {
+            if (n > str_count || n < 0)
+                return -1;
 
-        lseek(file, st, SEEK_SET);
-        read(file, rez, l);
-        rez[l] = '\0';
-        printf("%s", rez);
+            const off_t st = start[n - 1];
+            const int l = lens[n - 1];
 
-        scanf("%d", &n);
-        if (n > str_count)
-            return -1;
+            lseek(file, st, SEEK_SET);
+            read(file, rez, l);
+            rez[l] = '\0';
+            printf("%s", rez);
+        }
+        else
+        {
+            printf("Введите число - номер существующей строки\n");
+            while (getchar() != '\n');
+        }
+
+        if (n == 0)
+            break;
     }
 
     close(file);

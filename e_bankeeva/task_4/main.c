@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,8 +15,11 @@ int main()
     Node *head = NULL;
     Node *tail = NULL;
 
-    while (fgets(input_str,512, stdin))
+    while (1)
     {
+        if (fgets(input_str,512, stdin) == NULL)
+            break;
+
         if (input_str[0] == '.')
             break;
 
@@ -25,22 +29,40 @@ int main()
             input_str[len - 1] = '\0';
         }
 
-        char *str = malloc((len + 1));
-        strcpy(str, input_str);
-
-        Node *new_node = malloc(sizeof(Node));
-        new_node->str = str;
-        new_node->next = NULL;
-
-        if (head == NULL)
+        int f = 0;
+        for (int i = 0; input_str[i]; i++)
         {
-            head = new_node;
-            tail = new_node;
+            if (!isalpha(input_str[i]))
+            {
+                f = 1;
+                break;
+            }
+        }
+
+        if (f == 1)
+        {
+            printf("Введите только буквы\n");
+            while (getchar() != '\n');
         }
         else
         {
-            tail->next = new_node;
-            tail = new_node;
+            char *str = malloc((len + 1));
+            strcpy(str, input_str);
+
+            Node *new_node = malloc(sizeof(Node));
+            new_node->str = str;
+            new_node->next = NULL;
+
+            if (head == NULL)
+            {
+                head = new_node;
+                tail = new_node;
+            }
+            else
+            {
+                tail->next = new_node;
+                tail = new_node;
+            }
         }
     }
 
