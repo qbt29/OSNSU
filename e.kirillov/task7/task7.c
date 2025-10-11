@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     struct stat fileInfo;
     if (fstat(file, &fileInfo) == -1)
         return 1;
-        
+
     size_t size = fileInfo.st_size;
 
     const char *mapped = mmap(NULL, size, PROT_READ, MAP_PRIVATE, file, 0);
@@ -95,11 +95,15 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
-        int num;
-        scanf("%d", &num);
+        char temp[123];
+        printf("Enter the line number: ");
+        scanf("%s", temp);
 
-        if (num == 0)
+        int num = atoi(temp);
+
+        if(atoi(temp) == 0)
             break;
+            
         if (table.cnt < num) {
             printf("The file contains only %d line(s).\n", table.cnt);
             continue;
