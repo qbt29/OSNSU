@@ -1,3 +1,6 @@
+#define _GNU_SOURCE // GNU-специфичные расширения. Для использования strdup(), getline()
+#define _POSIX_C_SOURCE 200112L // Определяет версию POSIX стандарта = POSIX.1-2001. для getrlimit(), setrlimit()
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <time.h>
@@ -37,7 +40,8 @@ int main() {
     (void)time(&now);
     
     // установка значение переменной окружения
-    setenv("TZ", "PST8PDT", 1);
+    setenv("TZ", "PST8PST", 1);
+    // setenv("TZ", "America/Los_Angeles", 1)
     // TZ  - переменная окружения
     // PST - Pacific Standard Time (стандартное время)
     // 8   - смещение западнее от UTC в часах (UTC-8)
@@ -58,8 +62,8 @@ int main() {
     printf("%d/%d/%02d %d:%02d %s\n\n",
         sp->tm_mon + 1,         // месяц: +1 потому что в структуре месяц от 0 до 11
         sp->tm_mday,            // день месяца [1-31]
-        sp->tm_year,            // год начиная с 1900 (2024 год = 1900 + 124)
-        sp->tm_hour,            // часы [0-23]
+        sp->tm_year + 1900,     // год начиная с 1900 (2024 год = 1900 + 124)
+        sp->tm_hour-1,          // часы [0-23]
         sp->tm_min,             // минуты [0-59]
         tzname[sp->tm_isdst]);  // название временной зоны
 

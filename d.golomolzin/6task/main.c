@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <ctype.h>
 
 
 
@@ -13,6 +14,7 @@ typedef struct EL {
     size_t start;   // байт указывающий на начало строки => на след \n
     size_t lenght;  // длина строки = кол-во символов (без \n)
 } EL;
+
 
 // функция которая выводит все записи из файла. Срабатывает по истечении 5 секунд
 void display_all(int s) {
@@ -22,8 +24,10 @@ void display_all(int s) {
 
     int ind = 1;
     char str[1024];
-    printf("\nБыл получен сигнал под номером %d (SIGALRM) \n", s);
-    printf("\n===== Время вышло!!! =====\n");
+    printf("\n\nБыл получен сигнал под номером %d (SIGALRM) \n", s);
+    printf("┌──────────────────────────┐\n");
+    printf("│       Время вышло!       │\n");
+    printf("└──────────────────────────┘\n");
     while (fgets(str, 1024, file) != NULL) { printf("[%d] : %s", ind++, str); }
     printf("\n\n");
     exit(0);
@@ -99,11 +103,31 @@ int main () {
     printf("\nВведите индекс строки, которую вы хотите получить.\n");
     printf("5 секунд бездествия завершают программу и выводит содержимое\n");
     printf("Ввод 0 индекса / индекса превышающего макс.кол-во строк завершит программу\n");
+
+    printf("\nТаблица отступов для навигации:\n");
+    printf("┌─────┬───────────┬──────────┐\n");
+    printf("│  №  │   Start   │  Length  │\n");
+    printf("├─────┼───────────┼──────────┤\n");
+    for (size_t i = 0; i != ind; i++) {
+        printf("│ %3d │ %9d │ %8d │\n", (int)i + 1, (int)rows[i]->start, (int)rows[i]->lenght);
+    }
+    printf("└─────┴───────────┴──────────┘\n");
+
     while (1) {
         // считываем индекс по которому хотим получить строку
+        char input[100];
+        printf("Введите индекс: ");
+        
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            break;
+        }
+        
+        // не будет обрабатываться, если мы передадим букву
         int index;
-        scanf("%d", &index); 
-        index--;
+        if (sscanf(input, "%d", &index) != 1) {
+            printf("Ошибка: введите число, а не букву!\n");
+            continue;
+        }
         
         // отсчитывает переданное кол-во секунд и вызывает SIGALRM
         // возвращает оставшееся время предыдущего таймера

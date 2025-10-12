@@ -24,8 +24,10 @@ size_t ind = 1;
 // функция которая выводит все записи из файла. Срабатывает по истечении 5 секунд
 void display_all(int s) {
 
-    printf("\nБыл получен сигнал под номером %d (SIGALRM) \n", s);
-    printf("\n===== Время вышло!!! =====\n");
+    printf("\n\nБыл получен сигнал под номером %d (SIGALRM) \n", s);
+    printf("┌──────────────────────────┐\n");
+    printf("│       Время вышло!       │\n");
+    printf("└──────────────────────────┘\n");
     for (size_t i = 0; i != ind; i++) {
         printf("[%d] : %.*s\n", (int)i+1, (int)rows[i]->length-1, file_inmap + rows[i]->start);
     }

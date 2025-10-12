@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 
 
 typedef struct EL {
@@ -93,11 +94,34 @@ int main () {
     
     printf("\nВведите индекс строки, которую вы хотите получить.\n");
     printf("Ввод 0 индекса / индекса превышающего макс.кол-во строк завершит программу\n");
+
+    printf("\nТаблица отступов для навигации:\n");
+    printf("┌─────┬───────────┬──────────┐\n");
+    printf("│  №  │   Start   │  Length  │\n");
+    printf("├─────┼───────────┼──────────┤\n");
+    for (size_t i = 0; i != ind; i++) {
+        printf("│ %3d │ %9d │ %8d │\n", (int)i + 1, (int)rows[i]->start, (int)rows[i]->length);
+    }
+    printf("└─────┴───────────┴──────────┘\n");
     while (1) {
+        
         // считываем индекс по которому хотим получить строку
+        char input[100];
+        printf("Введите индекс: ");
+        
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            break;
+        }
+        
+        // не будет обрабатываться, если мы передадим букву
         int index;
-        scanf("%d", &index); 
+        if (sscanf(input, "%d", &index) != 1) {
+            printf("Ошибка: введите число, а не букву!\n");
+            continue;
+        }
+        
         index--;
+
 
         // есил получили 0 ИЛИ слишком большой индекс строки, то значит прерываем работу
         if (index == -1  || index >= ind) {
