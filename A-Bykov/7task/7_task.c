@@ -185,9 +185,6 @@ void interactive_mode(char *file_data, const LineInfo *lines, int line_count) {
         }
 
         print_line(file_data, lines, line_count, line_number);
-        
-        // Переустанавливаем таймер для следующего ввода
-        alarm(5);
     }
 }
 
