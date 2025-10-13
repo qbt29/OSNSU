@@ -70,9 +70,9 @@ int build_line_table(char *file_data, size_t file_size, LineInfo *lines) {
             lines[line_count].length = i - line_start;
             
 
-            printf("Строка %d: файловая_позиция=%ld, длина=%d\n", 
+            printf("%d: %ld %d\n", 
                     line_count + 1, 
-                    lines[line_count].position,
+                    lines[line_count].position, 
                     lines[line_count].length);
 
             
