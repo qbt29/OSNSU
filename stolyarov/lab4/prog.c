@@ -1,74 +1,116 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
-void remove_function_key_sequences(char *str) {
-    char *src = str;
-    char *dst = str;
+// структура узла списка
+typedef struct Node {
+    char* data;
+    struct Node* next;
+} Node;
+
+
+void delete_wrong_sumbols(char* str)
+{
+    int i = 0, j = 0;
+    int in_escape = 0;
+    int escape_start = -1;
     
-    while (*src) {
-        if (*src == 27 || (*src == '^' && *(src + 1) == '[')) {
-            if (*src == 27) {
-                src++;
-            } else {
-                src += 2;
+    while (str[i] != '\0')
+    {
+        if (in_escape)
+        {
+            if (str[i] == 'O' && i > 0 && str[i-1] == 27)
+            {
+                in_escape = 0;
+                i++; // пропускаем 'O'
+                if (str[i] != '\0') {
+                    i++; // пропускаем следующий символ после 'O'
+                }
+                continue;
             }
-            
-            while (*src && 
-                   ((*src >= 'A' && *src <= 'Z') ||
-                    (*src >= '0' && *src <= '9') ||
-                    *src == '[' || *src == '~' || *src == ';' ||
-                    *src == 'O' || *src == 'P' || *src == 'Q' || 
-                    *src == 'R' || *src == 'S')) {
-                src++;
+            else if ((str[i] >= 'A' && str[i] <= 'Z') || (str[i] >= 'a' && str[i] <= 'z') || str[i] == '~')
+            {
+                in_escape = 0;
             }
-        } else {
-            *dst++ = *src++;
         }
+        else if (str[i] == 27)
+        { 
+            in_escape = 1;
+            escape_start = i;
+        }
+        else if (((str[i] < 128) || (str[i] >= 192 && str[i] <= 253)))
+        {
+            if (str[i] == '[' && i > 0 && str[i-1] == 27) {}
+            else { str[j++] = str[i]; }
+        }
+        else if ((str[i] >= 128 && str[i] <= 191)) { str[j++] = str[i]; }
+        else if (str[i] >= 32 && str[i] <= 126) { str[j++] = str[i]; }
+        
+        i++;
     }
-    *dst = '\0';
+    str[j] = '\0';
 }
 
 
-int main(){
+int main() {
+    const size_t MAX_LEN_STR = 1024;
 
-    char** arr=NULL;
-    char str[1000];
-    int count=0;
+    Node* head = NULL;
+    Node* tail = NULL;
 
-    while(fgets(str,1000,stdin))
-    {
+    char* in_str = (char*)malloc(sizeof(char) * MAX_LEN_STR);
+    if (in_str == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
 
-        remove_function_key_sequences(str);
+    printf("\nВведите строки для записи в список.\n");
+    while (1) {
+        printf("Ваша строка: ");
+        if (fgets(in_str, MAX_LEN_STR, stdin) == NULL) { break; }
 
-        if(str[0]!='.')
-        {
-            char **temp = (char**)realloc(arr,(count+1)*sizeof(char*));
+        size_t len_in_str = strlen(in_str);
 
-            if(temp==NULL){
-                perror("Error realloc");
-                break;
-            }
-
-            temp[count++]=strdup(str);
-
-            arr=temp;
+        if (in_str[len_in_str-1] == '\n') {
+            in_str[len_in_str-1] = '\0';
+            len_in_str--;
         }
-        else
-        {
-            break;
+
+        if (len_in_str > 0 && in_str[0] == '.') { break; }
+        
+        len_in_str = strlen(in_str);
+
+        char* str = (char*)malloc(sizeof(char) * (len_in_str + 1));
+        if (str == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
+        strcpy(str, in_str);
+
+        Node* new_node = (Node*)malloc(sizeof(Node));
+        if (new_node == NULL) { fprintf(stderr, "Ошибка выделения памяти!\n"); return 1; }
+
+        new_node->data = str;
+        new_node->next = NULL;
+
+        if (head == NULL) {
+            head = new_node;
+            tail = new_node;
+        } else {
+            tail->next = new_node;
+            tail = new_node;
         }
+
+        memset(in_str, 0, MAX_LEN_STR * sizeof(char));
     }
 
-    printf("\nВведённые строки:\n");
+    Node* current = head;
+    while (current != NULL) {
+        printf("%s\n", current->data);
+        Node* to_free = current;
+        current = current->next;
 
-    for(int i=0;i<count;i++)
-    {
-        printf("%s",arr[i]);
-        free(arr[i]);
+        // очищаем память
+        free(to_free->data);
+        free(to_free);
     }
+    printf("\n");
 
-    free(arr);
+    free(in_str);
 
     return 0;
 }
