@@ -25,7 +25,7 @@ int main(void){
             }
             lines[lCnt].len++;
         }
-        if(c != '\0'){
+        if(c == '\n'){
             lines[lCnt].len--;
         }
         offset = lseek(descr,0,SEEK_CUR);
