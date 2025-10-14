@@ -88,6 +88,13 @@ int main(int argc, char *argv[]) {
         push(&table, current);
     }
 
+
+    printf("\n\n");
+    for(int i = 0; i < table.cnt; ++i){
+        printf("offset: %d, len: %d\n",table.array[i].offset, table.array[i].length);
+    }
+    printf("\n\n");
+
     // Установка обработчика сигнала
     signal(SIGALRM, alarm_handler);
 
