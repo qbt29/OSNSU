@@ -122,6 +122,7 @@ int main () {
     printf("\nВведите индекс строки, которую вы хотите получить.\n");
     printf("5 секунд бездествия завершают программу и выводит содержимое\n");
     printf("Ввод 0 индекса / индекса превышающего макс.кол-во строк завершит программу\n");
+    alarm(5);
     while (1) {
         // считываем индекс по которому хотим получить строку
         int index;
@@ -130,27 +131,27 @@ int main () {
         
         // отсчитывает переданное кол-во секунд и вызывает SIGALRM
         // возвращает оставшееся время предыдущего таймера
-        alarm(5);
-        // alarm(0) - сбрасывает счетчик
-
+        
         // есил получили 0 или слишком большой индекс в таблице, значит прерываем работу
         if (index == -1  || index >= ind) {
             break; 
         }
         else {
-
+            
             printf("[%d] : %.*s\n", (int)index + 1, (int)rows[index]->length-1, file_inmap + rows[index]->start);
         }
-
+        
+        // alarm(0) - сбрасывает счетчик
+        alarm(0);
     }
 
     if (file_inmap != NULL && file_inmap != MAP_FAILED) {
         munmap(file_inmap, size_file_inmap);
     }
-
+    
     for (int i = 0; i < ind; i++) { free(rows[i]); }
     free(rows);
     close(fd);
-
+    
     return 0;
 }

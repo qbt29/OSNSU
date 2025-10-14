@@ -49,14 +49,14 @@ void u_flag() {
 
     struct rlimit rlim;
     // получаем SOFT and HARD ограничения на размеры файлов
-    if (getrlimit(RLIMIT_FSIZE, &rlim) == -1) {
+    if (getrlimit(RLIMIT_NPROC, &rlim) == -1) {
         perror("Failed with getrlimit for FILE");
         return;
     }
     else {
         // размер в байтах
-        printf("SOFT FSIZE: %lu\n", rlim.rlim_cur); // ulimit -S -f
-        printf("HARD FSIZE: %lu\n", rlim.rlim_max); // ulimit -H -f
+        printf("SOFT NPROC: %lu\n", rlim.rlim_cur); // ulimit -S -f
+        printf("HARD NPROC: %lu\n", rlim.rlim_max); // ulimit -H -f
     }   
 }
 
@@ -66,32 +66,32 @@ void U_flag(const char* str) {
     // получаем значения для установки
     long arg = atol(str);
     if (arg < 0) {
-        perror("Wrong FSIZE");
+        perror("Wrong NPROC");
         return;
     }
     else {
         struct rlimit rlim;
         
-        if (getrlimit(RLIMIT_FSIZE, &rlim) == -1) {
-            perror("Failed with getrlimit for FSIZE in U_flag");
+        if (getrlimit(RLIMIT_NPROC, &rlim) == -1) {
+            perror("Failed with getrlimit for NPROC in U_flag");
             return;
         }
         // пробуем изменить soft
         // если пытается ввести больше, чем возможно
         if (rlim.rlim_max != RLIM_INFINITY && (rlim_t)arg > rlim.rlim_max) {
-            fprintf(stderr, "Wrong SOFT FSIZE");
+            fprintf(stderr, "Wrong SOFT NPROC");
             return;
         }
 
         rlim.rlim_cur = arg;
         
-        if (setrlimit(RLIMIT_FSIZE, &rlim) == -1) {
-            perror("Failed with setrlimit for FSIZE in U_flag");
+        if (setrlimit(RLIMIT_NPROC, &rlim) == -1) {
+            perror("Failed with setrlimit for NPROC in U_flag");
             return;
         }
         else {
-            printf("New SOFT FSIZE: %lu\n", rlim.rlim_cur); // ulimit -S -f
-            printf("HARD FSIZE: %lu\n", rlim.rlim_max);     // ulimit -H -f
+            printf("New SOFT NPROC: %lu\n", rlim.rlim_cur); // ulimit -S -f
+            printf("HARD NPROC: %lu\n", rlim.rlim_max);     // ulimit -H -f
         }
     }
 }
