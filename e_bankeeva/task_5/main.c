@@ -33,14 +33,20 @@ int main(int argc, const char * argv[])
         }
     }
 
-    printf("Line Offset length\n");
+    if (len > 0 && str_count < 1024)
+    {
+        lens[str_count] = len;
+        str_count += 1;
+    }
+
+    printf("Line | Offset | Length\n\n");
     for (int i = 0; i < str_count; i++)
         printf("%d\t%lld\t%d\n", i + 1, (long long)start[i], lens[i] - 1);
 
 
     int n;
     char rez[1024];
-
+    printf("\nВведите номер строки\n");
     while (1)
     {
         if (scanf("%d", &n) == 1 && n > 0 && n < str_count + 1)

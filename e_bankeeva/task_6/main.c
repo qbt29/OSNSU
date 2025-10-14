@@ -11,7 +11,7 @@ volatile int timeout = 0;
 
 void alarm_handler()
 {
-    printf("Time's up\n");
+    printf("Время вышло\n");
     timeout = 1;
     fclose(stdin);
 }
@@ -51,7 +51,7 @@ int main(int argc, const char * argv[])
         str_count += 1;
     }
 
-    printf("Line Offset length\n");
+    printf("Line | Offset | Length\n");
     for (int i = 0; i < str_count; i++)
         printf("%d\t%lld\t%d\n", i + 1, (long long)start[i], lens[i] - 1);
 
@@ -59,6 +59,7 @@ int main(int argc, const char * argv[])
     int n, f = 0;
     char rez[1025];
 
+    printf("\nВведите номер строки\n");
     while (1)
     {
         if (f == 0)
@@ -90,6 +91,16 @@ int main(int argc, const char * argv[])
         {
             if (timeout == 1 || n == 0)
                 break;
+
+            if (f == 0)
+            {
+                alarm(0);
+                f = 1;
+                if (timeout == 1)
+                {
+                    break;
+                }
+            }
 
             printf("Введите число - номер существующей строки\n");
             while (getchar() != '\n');
