@@ -32,7 +32,7 @@ int main(void){
         lCnt++;
     }
     for(int i=0;i<lCnt;i++){
-        printf("Line %d:\noffset=%d\nlen=%d\n\n",i+1,lines[i].begin,lines[i].len);
+        printf("Line %d:\noffset=%ld\nlen=%d\n\n",i+1,lines[i].begin,lines[i].len);
     }
     int op = 0;
     printf("Line number:");

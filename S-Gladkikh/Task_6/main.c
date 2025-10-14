@@ -15,6 +15,7 @@ int lCnt;
 
 
 void timeout(){
+    printf("\n");
     for(int i=0;i<lCnt;i++){
         lseek(descr,lines[i].begin,SEEK_SET);
         char buf[255];
@@ -47,7 +48,7 @@ int main(void){
         lCnt++;
     }
     for(int i=0;i<lCnt;i++){
-        printf("Line %d:\noffset=%d\nlen=%d\n\n",i+1,lines[i].begin,lines[i].len);
+        printf("Line %d:\noffset=%ld\nlen=%d\n\n",i+1,lines[i].begin,lines[i].len);
     }
     signal(SIGALRM,&timeout);
     int op = 0;
