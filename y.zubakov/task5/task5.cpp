@@ -65,12 +65,16 @@ void read_str(int start) {
 
 int main() {
     separate_file();
-    for (auto [key, value] : mp) {
-        cout << key << ' ' << value << endl;
+    // for (auto [key, value] : mp) {
+    //     cout << key << ' ' << value << endl;
+    // }
+    while (1) {
+        int x;
+        cout << "Enter string number: ";
+        cin >> x;
+        if (x == 0)
+            break;
+        read_str(x-1);
     }
-    int x;
-    cout << "Enter string number: ";
-    cin >> x;
-    read_str(x-1);
     return 0;
 }
