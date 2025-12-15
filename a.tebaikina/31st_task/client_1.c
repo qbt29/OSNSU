@@ -1,61 +1,49 @@
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>      // read, write, close
-#include <sys/socket.h>  // socket, connect
-#include <sys/un.h>      // sockaddr_un
-#include <time.h>        // rand
+#include <time.h>
 
-#define SOCKET_PATH "/tmp/upper_socket"
-#define BUF_SIZE 1024
+#define SOCKET_PATH "./socket"    // путь к unix сокету
 
-int main(void) {
-    int sock_fd;
-    struct sockaddr_un addr;
-    char buf[BUF_SIZE];
-    ssize_t n;
-
-    sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sock_fd == -1) {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
-
-    if (connect(sock_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        perror("connect");
-        close(sock_fd);
-        exit(EXIT_FAILURE);
-    }
-
-    srand(time(NULL) ^ getpid());
-
-    const char *msgs[] = {
-            "AAA1 hello ",
-            "AAA1 part ",
-            "AAA1 segment "
+// низкая функция записи набора сообщений в сокет
+void write_(int fd, int num) {
+    const char* texts[] = {
+            "alpha", "beta", "gamma", "delta", "epsilon",
+            "zeta", "eta", "theta", "iota", "kappa"
     };
-    int count_msgs = sizeof(msgs) / sizeof(msgs[0]);
 
-    for (int i = 0; i < 5; i++) {
-        const char *m = msgs[rand() % count_msgs];
-        write(sock_fd, m, strlen(m));
-        usleep((rand() % 300 + 100) * 1000);
+    char buf[64];
+    for (int i = 0; i < 10; i++) {    // отправляем 10 сообщений
+        const char* msg = texts[rand() % 10]; // выбираем случайное
+        snprintf(buf, sizeof(buf), "[%d] %s\n", num, msg);
+        write(fd, buf, strlen(buf));          // пишем в сокет
+    }
+}
+
+int main(int argc, char* argv[]) {
+    srand(time(NULL));                         // инициализируем генератор
+
+    int fd;
+    struct sockaddr_un address;
+
+    fd = socket(AF_UNIX, SOCK_STREAM, 0);      // создаем unix сокет
+    if (fd == -1) { perror("socket"); return 1; }
+
+    memset(&address, 0, sizeof(address));       // заполняем структуру адреса
+    address.sun_family = AF_UNIX;
+    strncpy(address.sun_path, SOCKET_PATH, sizeof(address.sun_path) - 1);
+
+    if (connect(fd, (struct sockaddr*)&address, sizeof(address)) == -1) {
+        perror("connect"); close(fd); return 1;
     }
 
-    while ((n = read(STDIN_FILENO, buf, BUF_SIZE)) > 0) {
-        if (write(sock_fd, buf, n) == -1) {
-            perror("write");
-            close(sock_fd);
-            exit(EXIT_FAILURE);
-        }
-    }
+    int num = argc > 1 ? atoi(argv[1]) : 1;     // идентификатор клиента
+    write_(fd, num);                            // отправляем набор сообщений
 
-    if (n == -1) perror("read");
-
-    close(sock_fd);
+    close(fd);
     return 0;
 }
