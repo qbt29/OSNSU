@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#define SOCK_PATH "socket_path"
+#define SOCK_PATH "./socket"
 
 int main(void){
     int srv, cli, n, i;
