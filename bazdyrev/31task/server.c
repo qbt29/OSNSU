@@ -70,7 +70,7 @@ int main() {
                         get_current_time(current_time, sizeof(current_time));
                         
                         printf("[%s] Клиент подключен: fd=%d, всего клиентов: %d\n", 
-                               current_time, client_fd - 3, count_ds);
+                               current_time, client_fd, count_ds);
                         
                         count_ds++;
                     } else {
