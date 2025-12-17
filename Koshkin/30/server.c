@@ -1,3 +1,5 @@
+// socket() → bind() → listen() → accept() → read() → close()
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,91 +7,73 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <ctype.h>
-#include <signal.h>
 
-#define SOCKET_PATH "/tmp/uppercase_socket"
+#define SOCKET_PATH "./socket"
+#define BUFFER_SIZE 1024
 
-int main() {
+int main()
+{
     int server_fd, client_fd;
-    struct sockaddr_un server_addr, client_addr;
-    socklen_t client_len;
-    char ch;
-    ssize_t bytes_read;
+    struct sockaddr_un address;
+    char buffer[BUFFER_SIZE];
 
-    // Создаем сокет
+    ssize_t bytes_received;
     server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        perror("socket");
-        exit(EXIT_FAILURE);
+
+    if (server_fd == -1)
+    {
+        perror("Socket making failed\n");
+        exit(1);
     }
 
-    // Удаляем старый сокет, если он существует
     unlink(SOCKET_PATH);
+    address.sun_family = AF_UNIX;
+    strncpy(address.sun_path, SOCKET_PATH, sizeof(address.sun_path) - 1);
 
-    // Настраиваем адрес сервера
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sun_family = AF_UNIX;
-    strncpy(server_addr.sun_path, SOCKET_PATH, sizeof(server_addr.sun_path) - 1);
-
-    // Привязываем сокет к адресу
-    if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        perror("bind");
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) == -1)
+    {
+        perror("Server connection failed\n");
         close(server_fd);
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
-    // Начинаем слушать входящие соединения
-    if (listen(server_fd, 5) < 0) {
-        perror("listen");
+    if (listen(server_fd, 5) == -1)
+    {
+        perror("Socket listening failed\n");
         close(server_fd);
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
-    printf("Сервер запущен. Ожидание подключения клиента...\n");
+    client_fd = accept(server_fd, NULL, NULL);
 
-    // Принимаем подключение клиента (ждем только одно подключение)
-    client_len = sizeof(client_addr);
-    client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-    
-    if (client_fd < 0) {
-        perror("accept");
+    if (client_fd == -1)
+    {
+        perror("Accept failed\n");
         close(server_fd);
-        unlink(SOCKET_PATH);
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
-    printf("Клиент подключен. Принимаю символы:\n");
+    while (1)
+    {
+        ssize_t read_bytes = read(client_fd, buffer, BUFFER_SIZE - 1);
 
-    // Принимаем и обрабатываем символы по одному
-    while (1) {
-        bytes_read = read(client_fd, &ch, 1);
-        
-        if (bytes_read <= 0) {
-            // Клиент отключился
-            if (bytes_read < 0) {
-                perror("read");
-            }
+        if (read_bytes <= 0)
+        {
             break;
         }
-        
-        // Преобразуем символ в верхний регистр и выводим
-        char upper_ch = toupper((unsigned char)ch);
-        putchar(upper_ch);
-        fflush(stdout);
-        
-        // Если получен символ новой строки, выводим возврат каретки
-        if (ch == '\n') {
-            printf("\r");
+
+        buffer[read_bytes] = '\0';
+
+        for (int i = 0; buffer[i]; i++)
+        {
+            buffer[i] = toupper((unsigned char)buffer[i]);
         }
+
+        printf("input from client: %s\n", buffer);
     }
 
-    printf("\nКлиент отключился. Завершение работы сервера.\n");
-    
-    // Закрываем соединения
     close(client_fd);
     close(server_fd);
-    
-    // Удаляем файл сокета
     unlink(SOCKET_PATH);
 
     return 0;
