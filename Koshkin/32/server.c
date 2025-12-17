@@ -1,170 +1,192 @@
-#define _POSIX_C_SOURCE 200809L
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
 #include <ctype.h>
-#include <stdlib.h>
+#include <poll.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <time.h>
-#include <aio.h>
 
-#define NUM_CLIENTS 10
-#define SOCKET_PATH "socket32"
-#define BLOCK_SIZE 4
+#define SOCKET_PATH  "./socket"
+#define BUF 1024
+#define MAX_CLIENTS 10
 
-typedef struct {
-    int fd;
-    int active;
-    int num;
-    struct aiocb aio;
-    char buf[BLOCK_SIZE+1];
-    struct timespec connect_time;  // Время подключения клиента
-} client_t;
-
-client_t clients[NUM_CLIENTS];
-int server_fd;
-
-void print_time_event(int num, const char *event) {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts); // точное время
-
-    struct tm tm_info;
-    localtime_r(&ts.tv_sec, &tm_info);
-
-    char buf[64];
-    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm_info);
-    printf("[%d] %s %s.%03ld\n", num, event, buf, ts.tv_nsec / 1000000);
-    fflush(stdout);
-}
-
-// Функция для вывода времени, проведенного клиентом на сервере
-void print_connection_duration(client_t *c) {
-    struct timespec current_time;
-    clock_gettime(CLOCK_REALTIME, &current_time);
-    
-    // Вычисляем разницу во времени
-    long seconds = current_time.tv_sec - c->connect_time.tv_sec;
-    long nanoseconds = current_time.tv_nsec - c->connect_time.tv_nsec;
-    
-    // Корректируем, если наносекунды отрицательные
-    if (nanoseconds < 0) {
-        seconds--;
-        nanoseconds += 1000000000L;
+void set_nonblocking(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+    {
+        perror("fcntl F_GETFL");
+        return;
     }
-    
-    // Конвертируем наносекунды в миллисекунды
-    long milliseconds = nanoseconds / 1000000;
-    
-    printf("[Client %d] Was on server for: %ld.%03ld seconds\n", 
-           c->num, seconds, milliseconds);
-    fflush(stdout);
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+    {
+        perror("fcntl F_SETFL");
+    }
 }
 
-void start_aio(client_t *c) {
-    memset(&c->aio, 0, sizeof(c->aio));
-    c->aio.aio_fildes = c->fd;
-    c->aio.aio_buf = c->buf;
-    c->aio.aio_nbytes = BLOCK_SIZE;
-    c->aio.aio_offset = 0;
-    aio_read(&c->aio);
+void get_current_time(char *time_buf, size_t buf_size)
+{
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(time_buf, buf_size, "%Y-%m-%d %H:%M:%S", tm_info);
 }
 
-int main() {
+int main()
+{
+    int server_fd, client_fd;
+    struct sockaddr_un socket_addr;
+    char buffer[BUF];
+    ssize_t bytes;
+
+    struct pollfd fds[MAX_CLIENTS + 1];
+    int client_count = 1;
+    
+    char mixed_buffer[BUF * 10] = {0};
+    int mixed_pos = 0;
+    
+    char connection_time[MAX_CLIENTS + 1][64];
+
     server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        perror("socket"); 
-        return 1;
+    set_nonblocking(server_fd);
+
+    memset(&socket_addr, 0, sizeof(socket_addr));
+    socket_addr.sun_family = AF_UNIX;
+    strncpy(socket_addr.sun_path, SOCKET_PATH, sizeof(socket_addr.sun_path)-1);
+
+    unlink(SOCKET_PATH);
+
+    bind(server_fd, (struct sockaddr*)&socket_addr, sizeof(socket_addr));
+    listen(server_fd, MAX_CLIENTS);
+
+    memset(fds, 0, sizeof(fds));
+    memset(connection_time, 0, sizeof(connection_time));
+    
+    fds[0].fd = server_fd;
+    fds[0].events = POLLIN;
+
+    printf("Сервер начал свою сессию\n");
+
+    while (1)
+    {
+        int ready = poll(fds, client_count, 100);
+
+        for (int i = 0; i < client_count; i++)
+        {
+            if (fds[i].revents == 0) continue;
+
+            if (fds[i].fd == server_fd)
+            {
+                if (fds[i].revents & POLLIN)
+                {
+                    while (1) {
+                        client_fd = accept(server_fd, NULL, NULL);
+                        if (client_fd == -1)
+                        {
+                            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                            {
+                                break;
+                            }
+                        }
+                        
+                        if (client_count < MAX_CLIENTS + 1)
+                        {
+                            set_nonblocking(client_fd);
+                            fds[client_count].fd = client_fd;
+                            fds[client_count].events = POLLIN;
+                            
+                            get_current_time(connection_time[client_count], sizeof(connection_time[client_count]));
+                            char current_time[64];
+                            get_current_time(current_time, sizeof(current_time));
+                            printf("[%s] Клиент подключился %d\n", current_time, client_count);
+                            
+                            client_count++;
+                        } else
+                        {
+                            close(client_fd);
+                        }
+                    }
+                }
+            } 
+            else if (fds[i].revents & POLLIN)
+            {
+                bytes = read(fds[i].fd, buffer, 1);
+                
+                if (bytes > 0)
+                {
+                    buffer[bytes] = '\0';
+                    
+                    if (mixed_pos < sizeof(mixed_buffer) - 1)
+                    {
+                        mixed_buffer[mixed_pos++] = buffer[0];
+                        mixed_buffer[mixed_pos] = '\0';
+                    }
+                    
+                    if (mixed_pos >= 30)
+                    {
+                        printf("Клиент %d: %s\n",fds[i].fd ,mixed_buffer);
+                        mixed_pos = 0;
+                    }
+                } 
+                else if (bytes == -1)
+                {
+                    if (!(errno == EAGAIN || errno == EWOULDBLOCK))
+                    {
+                        close(fds[i].fd);
+                        fds[i].fd = -1;
+                    }
+                }
+                else if (bytes == 0)
+                {
+                    char current_time[64];
+                    get_current_time(current_time, sizeof(current_time));
+                    
+                    time_t now = time(NULL);
+                    struct tm tm_connect;
+                    memset(&tm_connect, 0, sizeof(tm_connect));
+                    sscanf(connection_time[i], "%d-%d-%d %d:%d:%d", 
+                           &tm_connect.tm_year, &tm_connect.tm_mon, &tm_connect.tm_mday,
+                           &tm_connect.tm_hour, &tm_connect.tm_min, &tm_connect.tm_sec);
+                    tm_connect.tm_year -= 1900;
+                    tm_connect.tm_mon -= 1;
+                    time_t connect_time = mktime(&tm_connect);
+                    
+                    int duration = (int)difftime(now, connect_time);
+                    
+                    printf("[%s] Клиент %d отключился, time of connection: %d секунд\n", current_time, fds[i].fd, duration);
+                    close(fds[i].fd);
+                    fds[i].fd = -1;
+                    memset(connection_time[i], 0, sizeof(connection_time[i]));
+                }
+            }
+        }
+
+        for (int i = 0; i < client_count; i++)
+        {
+            if (fds[i].fd == -1)
+            {
+                for (int j = i; j < client_count - 1; j++)
+                {
+                    fds[j] = fds[j + 1];
+                    strncpy(connection_time[j], connection_time[j + 1], sizeof(connection_time[j]));
+                }
+                i--;
+                client_count--;
+            }
+        }
+    }
+
+    for (int i = 0; i < client_count; i++)
+    {
+        if (fds[i].fd != -1)
+        {
+            close(fds[i].fd);
+        }
     }
 
     unlink(SOCKET_PATH);
-    struct sockaddr_un addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path)-1);
-
-    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        perror("bind");
-        return 1;
-    }
-
-    if (listen(server_fd, NUM_CLIENTS) < 0) {
-        perror("listen"); 
-        return 1;
-    }
-
-    for (int i = 0; i < NUM_CLIENTS; i++) 
-        clients[i].active=0;
-
-    // делаем сервер неблокирующим
-    fcntl(server_fd, F_SETFL, O_NONBLOCK);
-
-    while(1) {
-        // принимаем новых клиентов
-        int fd = accept(server_fd, NULL, NULL);
-        if(fd >= 0){
-            int idx = -1;
-            for(int i = 0; i < NUM_CLIENTS; i++) 
-                if(!clients[i].active){
-                    idx = i; 
-                    break;
-                }
-
-            if(idx >= 0){
-                clients[idx].fd = fd;
-                clients[idx].active = 1;
-                clients[idx].num = idx + 1;
-                
-                // Запоминаем время подключения клиента
-                clock_gettime(CLOCK_REALTIME, &clients[idx].connect_time);
-                
-                print_time_event(clients[idx].num, "START");
-                fcntl(fd, F_SETFL, O_NONBLOCK);
-                start_aio(&clients[idx]);
-            } 
-            else {
-                fprintf(stderr, "No free slots for new client\n");
-                close(fd);
-            }
-        }
-
-        // проверяем завершение aio
-        for(int i = 0; i < NUM_CLIENTS; i++){
-            if (!clients[i].active) 
-                continue;
-
-            int err = aio_error(&clients[i].aio);
-            if(err == 0){
-                int n = aio_return(&clients[i].aio);
-
-                if(n > 0){
-                    clients[i].buf[n] = 0;
-                    for(int j=0;j<n;j++) clients[i].buf[j] = toupper((unsigned char)clients[i].buf[j]);
-                    printf("[%d] %s", i, clients[i].buf);
-                    fflush(stdout);
-                    start_aio(&clients[i]); // новое асинхронное чтение
-                } 
-                else if (n == 0){
-                    // Выводим время, проведенное на сервере
-                    print_connection_duration(&clients[i]);
-                    print_time_event(clients[i].num,"END");
-                    
-                    close(clients[i].fd);
-                    clients[i].active=0;
-                }
-            } 
-            else if (err != EINPROGRESS){
-                perror("aio_error");
-                close(clients[i].fd);
-                clients[i].active=0;
-            }
-        }
-        usleep(1000);
-    }
-
-    close(server_fd);
     return 0;
 }
