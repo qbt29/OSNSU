@@ -41,13 +41,7 @@ int main(int argc, char *argv[]) {
         
         // Проверяем, как завершился процесс и выводим код завершения
         if (WIFEXITED(status)) {
-            printf("Процесс завершился с кодом: %d\n", WEXITSTATUS(status));
-        } else if (WIFSIGNALED(status)) {
-            printf("Процесс завершился по сигналу: %d\n", WTERMSIG(status));
-        } else {
-            printf("Процесс завершился ненормально\n");
-        }
-        
+            printf("Процесс завершился с кодом: %d\n", WEXITSTATUS(status));}
         return 0;
     }
 }
