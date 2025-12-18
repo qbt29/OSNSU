@@ -1,159 +1,165 @@
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>       // toupper
+#include <errno.h>
 #include <string.h>
-#include <unistd.h>      // read, write, close, unlink
-#include <sys/socket.h>  // socket, bind, listen, accept
-#include <sys/un.h>      // sockaddr_un
+#include <ctype.h>
+#include <sys/select.h>
 #include <time.h>
 
-#define SOCKET_PATH "/tmp/upper_socket"
-#define BUF_SIZE 1024
+#define NUM_CLIENTS 10    // макс число клиентов
 
-
+// структура с данными клиента
 typedef struct {
-    int fd;                // файловый дескриптор клиента
-    int active;            // признак, что клиент существует
-    int id;                // номер клиента (1..n)
-    struct timespec start; // время начала работы клиента
-} client_t;
+    int fd;               // файловый дескриптор клиента
+    struct timespec start_ts; // время подключения клиента
+    int active;           // активность клиента
+    int num;              // идентификатор клиента
+} client_info_t;
 
-client_t clients[FD_SETSIZE]; // массив клиентов как у тебя, но расширенный
+client_info_t clients[NUM_CLIENTS];
 
-int main(void) {
-    int server_fd;
+// низкоуровневое чтение из клиента
+int read_(int idx) {
+    char c;
+    int fd = clients[idx].fd;
+    int bytes = read(fd, &c, 1); // читаем один байт
 
-    // ! много клиентов - все нули !
-    int client_fds[FD_SETSIZE]; // оставляем, хотя теперь не основной массив
-    int client_count = 0;
-    for (int i = 0; i < FD_SETSIZE; i++) {
-        client_fds[i] = -1;
+    if (bytes > 0) {
+        putchar(toupper((unsigned char)c)); // печатаем в верхнем регистре
+        fflush(stdout);
+        return 0;
+    }
+
+    // если байтов нет или ошибка — закрываем клиента
+    if (bytes <= 0) {
+        if (bytes == -1) perror("read"); // выводим ошибку если есть
+        close(fd); // закрываем сокет клиента
+
+        // берем время завершения работы
+        struct timespec end_ts;
+        clock_gettime(CLOCK_MONOTONIC, &end_ts);
+
+        // считаем длительность соединения
+        double diff = (end_ts.tv_sec - clients[idx].start_ts.tv_sec) +
+                      (end_ts.tv_nsec - clients[idx].start_ts.tv_nsec) / 1e9;
+
+        // вывод текущего времени
+        time_t now = time(NULL);
+        struct tm *tm = localtime(&now);
+        char tbuf[64];
+        strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", tm);
+
+        printf("\n[%d] END %s (DIFF %.6f sec)\n",
+               clients[idx].num, tbuf, diff);
+
+        clients[idx].active = 0; // помечаем клиента как неактивного
+        return 1;
+    }
+
+    return 0;
+}
+
+int main () {
+    printf("\n сервер \n");
+
+    int server_fd = socket(PF_LOCAL, SOCK_STREAM, 0); // создаем unix-сокет
+    if (server_fd == -1) { perror("socket"); return 1; }
+
+    const char* path_socket = "./socket";
+
+    // удаляем старый сокетный файл если он существует
+    if (unlink(path_socket) == -1 && errno != ENOENT) {
+        perror("unlink");
+        close(server_fd);
+        return 1;
+    }
+
+    struct sockaddr_un address;
+    memset(&address, 0, sizeof(address)); // обнуляем структуру
+    address.sun_family = AF_UNIX;         // тип адреса
+    strncpy(address.sun_path, path_socket, sizeof(address.sun_path)-1); // путь
+
+    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) == -1) {
+        perror("bind"); close(server_fd); return 1;
+    }
+
+    // слушаем входящие соединения
+    if (listen(server_fd, NUM_CLIENTS+1) == -1) {
+        perror("listen"); close(server_fd); return 1;
+    }
+
+    // инициализация клиентов
+    for (int i = 0; i < NUM_CLIENTS; i++) {
+        clients[i].fd = -1;
         clients[i].active = 0;
-        clients[i].id = i + 1;
+        clients[i].num = i+1; // назначаем номер клиенту
     }
 
-    struct sockaddr_un addr;
-    char buf[BUF_SIZE];
-    ssize_t n; // сколько байт прочитали
+    fd_set rfds; // набор дескрипторов для select
 
-    // 1. создаем сокет
-    // AF_UNIX  → сокет для локального общения через файл (не через интернет)
-    // SOCK_STREAM → потоковое соединение, как TCP (надёжная передача байтов)
-    // 0 → использовать протокол по умолчанию для такого типа сокета
-    server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (server_fd == -1) {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
+    while(1) {
+        FD_ZERO(&rfds);            // очищаем набор
+        FD_SET(server_fd, &rfds);  // добавляем серверный сокет
+        int mx_fd = server_fd;     // максимальный дескриптор
 
-    // 2. заполяем структуру addr( там структура, тип сокета+путь к файлу сокета)
-    memset(&addr, 0, sizeof(addr)); // обнуляем весь addr
-    addr.sun_family = AF_UNIX;
-    // Копируем путь к сокету
-    strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
-
-    unlink(SOCKET_PATH);
-
-    // 3. привязываем сокет к пути в файловой системе
-    // bind - прикрепить сокет к адресу
-    if (bind(server_fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-        perror("bind");
-        close(server_fd);
-        exit(EXIT_FAILURE);
-    }
-
-    // 4. начинаем слушать
-    if (listen(server_fd, 10) == -1) {
-        perror("listen");
-        close(server_fd);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("сервер запущен, ждет подключения\n");
-
-    while (1) {
-        // Для управления fd_set используются макросы:
-        // FD_ZERO() для инициализации,
-        // FD_SET() для добавления дескриптора,
-        fd_set readfds; // набор дескрипторов, за которыми будет наблюдать select()
-        FD_ZERO(&readfds);
-
-        // добавляем серверный сокет в список наблюдаемых
-        FD_SET(server_fd, &readfds);
-        int max_fd = server_fd;
-
-        // следим за клиентскими сокетами
-        for (int i = 0; i < FD_SETSIZE; i++) {
+        // добавляем активных клиентов
+        for (int i = 0; i < NUM_CLIENTS; i++) {
             if (clients[i].active) {
-                FD_SET(clients[i].fd, &readfds);
-                if (clients[i].fd > max_fd)
-                    max_fd = clients[i].fd;
+                FD_SET(clients[i].fd, &rfds);
+                if (clients[i].fd > mx_fd) mx_fd = clients[i].fd;
             }
         }
 
-        // ------- 5. ждём активности на любом сокете -------
-        int ready = select(max_fd + 1, &readfds, NULL, NULL, NULL);
-        if (ready == -1) {
-            perror("select");
-            break;
-        }
+        // ждем событий
+        int action = select(mx_fd+1, &rfds, NULL, NULL, NULL);
+        if (action == -1) { perror("select"); break; }
 
-        // ------- 6. подключение клиента ------
-        if (FD_ISSET(server_fd, &readfds)) {
-            int new_fd = accept(server_fd, NULL, NULL);
-            if (new_fd == -1) {
-                perror("accept");
-            } else {
-                int placed = 0;
-                for (int i = 0; i < FD_SETSIZE; i++) {
-                    if (!clients[i].active) {
-                        clients[i].active = 1;
-                        clients[i].fd = new_fd;
-                        clock_gettime(CLOCK_MONOTONIC, &clients[i].start); // время старта
-                        printf("[SERVER] START client %d (fd=%d)\n", clients[i].id, new_fd);
-                        placed = 1;
-                        break;
-                    }
-                }
-                if (!placed) {
-                    printf("Слишком много клиентов!\n");
-                    close(new_fd);
+        // подключение нового клиента
+        if (FD_ISSET(server_fd, &rfds)) {
+            struct sockaddr_un client_addr;
+            socklen_t client_len = sizeof(client_addr);
+
+            int fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+            if (fd == -1) { perror("accept"); continue; }
+
+            // ищем свободное место
+            int fl = 0;
+            for (int i = 0; i < NUM_CLIENTS; i++) {
+                if (!clients[i].active) {
+                    clients[i].fd = fd;
+                    clients[i].active = 1;
+                    clock_gettime(CLOCK_MONOTONIC, &clients[i].start_ts); // фиксируем время старта
+
+                    // выводим старт клиента
+                    time_t now = time(NULL);
+                    struct tm *tm = localtime(&now);
+                    char tbuf[64];
+                    strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", tm);
+                    printf("\n[%d] START %s\n", clients[i].num, tbuf);
+
+                    fl = 1;
+                    break;
                 }
             }
+
+            // если мест нет — закрываем соединение
+            if (!fl) close(fd);
         }
 
-        // ------- 7. тексты от клиентов ---------
-        for (int i = 0; i < FD_SETSIZE; i++) {
-            if (clients[i].active && FD_ISSET(clients[i].fd, &readfds)) {
-
-                char c;
-                ssize_t n = read(clients[i].fd, &c, 1);
-
-                if (n > 0) {
-                    c = toupper((unsigned char)c);
-                    write(STDOUT_FILENO, &c, 1);
-                }
-                else {
-                    // клиент отключился
-                    struct timespec end;
-                    clock_gettime(CLOCK_MONOTONIC, &end);
-
-                    double diff =
-                            (end.tv_sec - clients[i].start.tv_sec) +
-                            (end.tv_nsec - clients[i].start.tv_nsec) / 1e9;
-
-                    printf("\n[SERVER] END client %d (fd=%d), alive %.6f sec\n",
-                           clients[i].id, clients[i].fd, diff);
-
-                    close(clients[i].fd);
-                    clients[i].active = 0;
-                }
+        // читаем данные от активных клиентов
+        for (int i = 0; i < NUM_CLIENTS; i++) {
+            if (clients[i].active && FD_ISSET(clients[i].fd, &rfds)) {
+                read_(i);
             }
         }
     }
+
+        for (int i = 0; i < NUM_CLIENTS; i++)
+        if (clients[i].active) close(clients[i].fd);
 
     close(server_fd);
-    unlink(SOCKET_PATH);
-
     return 0;
 }
